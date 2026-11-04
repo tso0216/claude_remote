@@ -1,0 +1,246 @@
+<!--
+=====================================================================
+  考卷網頁模板（單一 HTML 檔，直接用瀏覽器開啟即可）
+
+  給 AI 的說明：
+  1. 只需修改下方「★ 設定區」的 CONFIG 與 QUESTIONS，其他程式碼不要動。
+  2. QUESTIONS 每一題格式：
+       ["題號", "題目", 作答區行數, "參考答案"]
+     - 題目、答案中換行請用 \n
+     - 字串中若有雙引號 " 請寫成 \"
+     - 參考答案必須是「考試作答」的寫法：只寫得分要點，不解釋、不舉多餘例子
+       · 用 ①②③ 或 a. b. 條列，每點一句話，全題 1~4 行
+       · 選擇／排序／配對題只寫代號（例："f → c → a"）
+       · 不要寫「因為…所以…」的長段落，不要寫背景說明
+  3. 題數不限，照格式往下加即可。
+  4. 題目與答案可以寫 HTML，用來放表格、圖片：
+     - 表格：用 <table class="t"> ... </table>，整個表格寫在同一行
+         例："<table class=\"t\"><tr><th>行程</th><th>到達時間</th></tr><tr><td>P1</td><td>0</td></tr></table>"
+     - 圖片：<img src="圖片網址或檔名.png" alt="圖說">
+         · 用檔名時，圖片要和這個 HTML 檔放在同一個資料夾
+         · 講義上的圖也可以轉成 base64：<img src="data:image/png;base64,....">
+     - 拿不到圖片時，放圖片預留框，之後再手動換成 <img>：
+         <div class="fig">【圖】此處放講義第 xx 頁的 ○○ 圖</div>
+     - 程式碼區塊（保留空白與縮排）：<span class="code">add  $t0, $s1, $s2\nlw   $t1, 12($t0)</span>
+     - 文字中的「<」要寫成 &lt;，「&」要寫成 &amp;（否則會被當成 HTML）
+     - 粗體可用 <b>…</b>，程式碼可用 <code>…</code>
+=====================================================================
+-->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考卷</title>
+<style>
+:root{--desk:#eef1f4;--paper:#fff;--ink:#111418;--muted:#5f6670;--line:#ccd3db;--pen:#1d3f9e;
+  --red:#c62828;--red-soft:#fdeeee;--mark:#e08a00;--mark-soft:#fff6e0;color-scheme:light}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:"Noto Serif TC","PMingLiU",serif;font-size:16px;line-height:1.75}
+.wrap{max-width:820px;margin:0 auto;padding:calc(var(--navh,60px) + 10px) 16px 56px}
+.nav{position:fixed;top:0;left:0;right:0;z-index:5;background:var(--desk);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.nav-in{max-width:820px;margin:0 auto;padding:10px 16px 8px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 300px;min-width:0}
+.chip{font:13px/1 system-ui,sans-serif;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:3px;padding:5px 7px;cursor:pointer}
+.chip.m{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:700}
+.chip:hover{border-color:var(--ink)}
+.tog{font:13px system-ui,sans-serif;border:1px solid var(--mark);color:var(--mark);background:var(--paper);border-radius:3px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.tog[aria-pressed="true"]{background:var(--mark);color:#fff}
+.paper{background:var(--paper);padding:40px 52px 52px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.school{text-align:center;letter-spacing:.3em;margin:0}
+h1{text-align:center;font-size:clamp(22px,4.6vw,30px);letter-spacing:.12em;margin:4px 0 18px}
+.rules{font-size:14px;color:var(--muted);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0;margin-bottom:22px}
+h2{font-size:18px;margin:0 0 14px}
+ol.qs{list-style:none;margin:0;padding:0;display:grid;gap:22px}
+.q{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:6px 8px;margin:0 -8px;border-left:3px solid transparent;scroll-margin-top:calc(var(--navh,60px) + 12px)}
+.q.m{border-left-color:var(--mark);background:var(--mark-soft)}
+.num{display:flex;flex-direction:column;align-items:center;gap:2px}
+.star{border:0;background:none;cursor:pointer;font-size:20px;line-height:1;color:var(--line);padding:2px}
+.q.m .star{color:var(--mark)}
+.star:hover{color:var(--mark)}
+.qb{min-width:0}.qt{margin:0;white-space:pre-line}
+textarea{display:block;width:100%;box-sizing:border-box;margin-top:8px;resize:vertical;border:0;border-bottom:1px solid var(--line);
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--line) 31px,var(--line) 32px);
+  line-height:32px;padding:0 4px;font-size:15.5px;font-family:inherit;color:var(--pen);outline:none}
+.act{display:flex;justify-content:flex-end;margin-top:6px}
+button.rv,.end button{cursor:pointer;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;padding:3px 12px;font-size:13.5px}
+button.rv:hover,.end button:hover{background:var(--red-soft)}
+.ans{margin-top:8px;padding:8px 12px;border:1.5px solid var(--red);border-radius:3px;color:var(--red);background:var(--paper);white-space:pre-line}
+.end{margin-top:36px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.end .ghost{border-color:var(--muted);color:var(--muted)}
+.fin{text-align:center;color:var(--muted);margin-top:22px;letter-spacing:.3em}
+.empty{color:var(--muted);text-align:center}
+.qt img,.ans img{display:block;max-width:100%;height:auto;margin:8px 0}
+.tw{overflow-x:auto;margin:6px 0}
+table.t{border-collapse:collapse;white-space:normal;font-size:15px}
+table.t th,table.t td{border:1px solid currentColor;padding:3px 10px;text-align:center}
+table.t th{font-weight:700}
+.fig{border:1.5px dashed var(--muted);color:var(--muted);padding:24px 12px;text-align:center;margin:8px 0;white-space:normal}
+code,.code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.code{display:block;white-space:pre;overflow-x:auto;border:1px solid var(--line);padding:6px 10px;margin:6px 0;line-height:1.6}
+button:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+[hidden]{display:none!important}
+.qh,.ah{display:flex;gap:8px;align-items:flex-start}
+.qh .qt{flex:1;min-width:0}
+.ah{justify-content:space-between}
+.tools{display:flex;gap:4px;flex:none}
+button.eb{cursor:pointer;border:1px solid var(--line);color:var(--muted);background:var(--paper);border-radius:3px;padding:1px 8px;font:12.5px/1.6 system-ui,sans-serif}
+button.eb:hover{border-color:var(--pen);color:var(--pen)}
+button.eb[aria-pressed="true"]{border-color:var(--pen);background:var(--pen);color:#fff}
+.ak{min-height:1.75em}
+.editing{outline:1px dashed var(--pen);outline-offset:3px;cursor:text;color:var(--ink)}
+@media (max-width:560px){.paper{padding:26px 18px 34px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav"><div class="nav-in">
+    <div class="chips" id="chips"></div>
+    <button type="button" class="tog" id="only" aria-pressed="false">只看標記題（0）</button>
+  </div></div>
+  <main class="paper">
+    <p class="school" id="sub"></p>
+    <h1 id="title"></h1>
+    <div class="rules" id="rules"></div>
+    <h2 id="section"></h2>
+    <ol class="qs" id="qs"></ol>
+    <p class="empty" id="empty" hidden>還沒有標記題，按題號旁的 ☆ 即可標記。</p>
+    <div class="end">
+      <button type="button" id="submit">交卷（公布全部答案）</button>
+      <button type="button" id="hide" class="ghost">收起答案</button>
+      <button type="button" id="clear" class="ghost">清除作答</button>
+    </div>
+    <p class="fin">— 試題結束 —</p>
+  </main>
+</div>
+
+<script>
+/* ★★★★★★★★★★ 設定區：只改這裡 ★★★★★★★★★★ */
+const CONFIG = {
+  subtitle: "科目名稱　隨堂練習",          // 上方小標
+  title:    "第一章　章節名稱　試卷",       // 大標題
+  section:  "一、問答題"                   // 大題名稱
+};
+
+const QUESTIONS = [
+  // ["題號", "題目", 作答區行數, "參考答案"],
+  ["1", "範例題目一：請說明 X 的三個主要目的。", 3,
+   "① 目的一\n② 目的二\n③ 目的三"],
+  ["2", "範例題目二：比較 A 與 B 的差異。\na. 子題一\nb. 子題二", 3,
+   "a. 答案一\nb. 答案二"],
+  ["3", "範例題目三（含表格）：依下表以 FCFS 排程，求平均等待時間。\n<table class=\"t\"><tr><th>Process</th><th>Burst Time</th></tr><tr><td>P1</td><td>24</td></tr><tr><td>P2</td><td>3</td></tr><tr><td>P3</td><td>3</td></tr></table>", 2,
+   "(0 + 24 + 27) ÷ 3 = 17"],
+  ["4", "範例題目四（含圖片）：說明下圖的運作流程。\n<div class=\"fig\">【圖】此處放講義第 xx 頁的 ○○ 圖</div>", 3,
+   "① 步驟一\n② 步驟二"]
+];
+/* ★★★★★★★★★★ 設定區結束 ★★★★★★★★★★ */
+
+document.title = CONFIG.title;
+document.getElementById("sub").textContent = CONFIG.subtitle;
+document.getElementById("title").textContent = CONFIG.title;
+document.getElementById("section").textContent = CONFIG.section;
+document.getElementById("rules").textContent =
+  `注意：本卷共 ${QUESTIONS.length} 題，作答會自動保存在本機瀏覽器。按題號旁 ☆ 標記題目，上方可跳題或只看標記題；逐題「對答案」或卷末「交卷」公布全部答案；按題目或答案旁的「編輯」可修改該區塊。`;
+
+// 頂欄固定在畫面最上方，依實際高度保留空間
+const nav = document.querySelector(".nav");
+const fitNav = () => document.documentElement.style.setProperty("--navh", nav.offsetHeight + "px");
+new ResizeObserver(fitNav).observe(nav); fitNav();
+
+const KEY = "exam-" + CONFIG.subtitle + CONFIG.title;
+let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+saved.marks = saved.marks || {}; saved.q = saved.q || {}; saved.k = saved.k || {};
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+
+const ol = document.getElementById("qs"), chips = document.getElementById("chips");
+const wrapTables = el => el.querySelectorAll("table").forEach(t => {
+  if (t.parentElement.classList.contains("tw")) return;
+  const w = document.createElement("div"); w.className = "tw"; t.before(w); w.appendChild(t); });
+// 一次只編輯一個區塊（題目或答案）
+let editing = null;
+function stopEdit() {
+  if (!editing) return;
+  const { el, btn, rs } = editing;
+  el.contentEditable = false; el.classList.remove("editing");
+  btn.textContent = "編輯"; btn.setAttribute("aria-pressed", "false"); rs.hidden = true;
+  editing = null;
+}
+function editable(el, tools, restore) {
+  const [rs, btn] = tools.querySelectorAll("button");
+  btn.onclick = () => {
+    const mine = editing && editing.el === el;
+    stopEdit();
+    if (mine) return;
+    editing = { el, btn, rs };
+    el.contentEditable = true; el.classList.add("editing");
+    btn.textContent = "完成"; btn.setAttribute("aria-pressed", "true"); rs.hidden = false;
+    el.focus();
+  };
+  rs.onclick = restore;
+}
+const TOOLS = `<span class="tools"><button type="button" class="eb" hidden>還原原文</button><button type="button" class="eb" aria-pressed="false">編輯</button></span>`;
+const items = QUESTIONS.map(([no, q, rows, a], i) => {
+  const li = document.createElement("li"); li.className = "q"; li.id = "q" + i;
+  li.innerHTML = `<div class="num"><span>${no}.</span><button type="button" class="star" title="標記這題">★</button></div>
+    <div class="qb"><div class="qh"><p class="qt"></p>${TOOLS}</div>
+    <textarea rows="${rows + 1}"></textarea>
+    <div class="act"><button type="button" class="rv">對答案</button></div>
+    <div class="ans" hidden><div class="ah"><b>參考答案</b>${TOOLS}</div><div class="ak"></div></div></div>`;
+  const qt = li.querySelector(".qt"), ak = li.querySelector(".ak");
+  qt.innerHTML = saved.q[i] ?? q;
+  ak.innerHTML = saved.k[i] ?? a;
+  wrapTables(li);
+  qt.oninput = () => { saved.q[i] = qt.innerHTML; save(); };
+  ak.oninput = () => { saved.k[i] = ak.innerHTML; save(); };
+  const [qTools, aTools] = li.querySelectorAll(".tools");
+  editable(qt, qTools, () => { delete saved.q[i]; save(); qt.innerHTML = q; wrapTables(qt); });
+  editable(ak, aTools, () => { delete saved.k[i]; save(); ak.innerHTML = a; wrapTables(ak); });
+  const ta = li.querySelector("textarea");
+  ta.value = saved["a" + i] || "";
+  ta.oninput = () => { saved["a" + i] = ta.value; save(); };
+  li.querySelector(".star").onclick = () => { saved.marks[i] = !saved.marks[i]; save(); refresh(); };
+  ol.appendChild(li);
+  const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = no;
+  c.title = "跳到第 " + no + " 題"; c.onclick = () => li.scrollIntoView({ behavior: "smooth", block: "start" });
+  chips.appendChild(c);
+  return { li, c };
+});
+
+const only = document.getElementById("only");
+function refresh() {
+  const on = only.getAttribute("aria-pressed") === "true";
+  let n = 0;
+  items.forEach(({ li, c }, i) => {
+    const m = !!saved.marks[i]; if (m) n++;
+    li.classList.toggle("m", m); c.classList.toggle("m", m);
+    li.querySelector(".star").title = m ? "取消標記" : "標記這題";
+    li.hidden = on && !m; c.hidden = on && !m;
+  });
+  only.textContent = `只看標記題（${n}）`;
+  document.getElementById("empty").hidden = !(on && n === 0);
+}
+only.onclick = () => { only.setAttribute("aria-pressed", only.getAttribute("aria-pressed") !== "true"); refresh(); };
+refresh();
+
+const btns = [...document.querySelectorAll(".rv")];
+const set = (b, open) => {
+  const ans = b.parentElement.nextElementSibling;
+  if (!open && editing && ans.contains(editing.el)) stopEdit();
+  ans.hidden = !open; b.textContent = open ? "收起" : "對答案";
+};
+btns.forEach(b => b.onclick = () => set(b, b.textContent === "對答案"));
+document.getElementById("submit").onclick = () => btns.forEach(b => set(b, true));
+document.getElementById("hide").onclick = () => btns.forEach(b => set(b, false));
+document.addEventListener("paste", e => {
+  if (!document.activeElement.isContentEditable) return;
+  e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+});
+let armed = false;
+document.getElementById("clear").onclick = e => {
+  if (!armed) { armed = true; e.target.textContent = "再按一次確認清除（標記與編輯會保留）";
+    setTimeout(() => { armed = false; e.target.textContent = "清除作答"; }, 4000); return; }
+  saved = { marks: saved.marks, q: saved.q, k: saved.k }; save(); document.querySelectorAll("textarea").forEach(el => el.value = "");
+  armed = false; e.target.textContent = "清除作答";
+};
+</script>
+</body>
+</html>
