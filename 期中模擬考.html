@@ -1,0 +1,267 @@
+<!--
+=====================================================================
+  考卷網頁模板（單一 HTML 檔，直接用瀏覽器開啟即可）
+
+  給 AI 的說明：
+  1. 只需修改下方「★ 設定區」的 CONFIG 與 QUESTIONS，其他程式碼不要動。
+  2. QUESTIONS 每一題格式：
+       ["題號", "題目", 作答區行數, "參考答案"]
+     - 題目、答案中換行請用 \n
+     - 字串中若有雙引號 " 請寫成 \"
+     - 參考答案必須是「考試作答」的寫法：只寫得分要點，不解釋、不舉多餘例子
+       · 用 ①②③ 或 a. b. 條列，每點一句話，全題 1~4 行
+       · 選擇／排序／配對題只寫代號（例："f → c → a"）
+       · 不要寫「因為…所以…」的長段落，不要寫背景說明
+  3. 題數不限，照格式往下加即可。
+  4. 題目與答案可以寫 HTML，用來放表格、圖片：
+     - 表格：用 <table class="t"> ... </table>，整個表格寫在同一行
+         例："<table class=\"t\"><tr><th>行程</th><th>到達時間</th></tr><tr><td>P1</td><td>0</td></tr></table>"
+     - 圖片：<img src="圖片網址或檔名.png" alt="圖說">
+         · 用檔名時，圖片要和這個 HTML 檔放在同一個資料夾
+         · 講義上的圖也可以轉成 base64：<img src="data:image/png;base64,....">
+     - 拿不到圖片時，放圖片預留框，之後再手動換成 <img>：
+         <div class="fig">【圖】此處放講義第 xx 頁的 ○○ 圖</div>
+     - 程式碼區塊（保留空白與縮排）：<span class="code">add  $t0, $s1, $s2\nlw   $t1, 12($t0)</span>
+     - 文字中的「<」要寫成 &lt;，「&」要寫成 &amp;（否則會被當成 HTML）
+     - 粗體可用 <b>…</b>，程式碼可用 <code>…</code>
+=====================================================================
+-->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考卷</title>
+<style>
+:root{--desk:#eef1f4;--paper:#fff;--ink:#111418;--muted:#5f6670;--line:#ccd3db;--pen:#1d3f9e;
+  --red:#c62828;--red-soft:#fdeeee;--mark:#e08a00;--mark-soft:#fff6e0;color-scheme:light}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:"Noto Serif TC","PMingLiU",serif;font-size:16px;line-height:1.75}
+.wrap{max-width:820px;margin:0 auto;padding:calc(var(--navh,60px) + 10px) 16px 56px}
+.nav{position:fixed;top:0;left:0;right:0;z-index:5;background:var(--desk);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.nav-in{max-width:820px;margin:0 auto;padding:10px 16px 8px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 300px;min-width:0}
+.chip{font:13px/1 system-ui,sans-serif;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:3px;padding:5px 7px;cursor:pointer}
+.chip.m{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:700}
+.chip:hover{border-color:var(--ink)}
+.tog{font:13px system-ui,sans-serif;border:1px solid var(--mark);color:var(--mark);background:var(--paper);border-radius:3px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.tog[aria-pressed="true"]{background:var(--mark);color:#fff}
+.paper{background:var(--paper);padding:40px 52px 52px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.school{text-align:center;letter-spacing:.3em;margin:0}
+h1{text-align:center;font-size:clamp(22px,4.6vw,30px);letter-spacing:.12em;margin:4px 0 18px}
+.rules{font-size:14px;color:var(--muted);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0;margin-bottom:22px}
+h2{font-size:18px;margin:0 0 14px}
+ol.qs{list-style:none;margin:0;padding:0;display:grid;gap:22px}
+.q{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:6px 8px;margin:0 -8px;border-left:3px solid transparent;scroll-margin-top:calc(var(--navh,60px) + 12px)}
+.q.m{border-left-color:var(--mark);background:var(--mark-soft)}
+.num{display:flex;flex-direction:column;align-items:center;gap:2px}
+.star{border:0;background:none;cursor:pointer;font-size:20px;line-height:1;color:var(--line);padding:2px}
+.q.m .star{color:var(--mark)}
+.star:hover{color:var(--mark)}
+.qb{min-width:0}.qt{margin:0;white-space:pre-line}
+textarea{display:block;width:100%;box-sizing:border-box;margin-top:8px;resize:vertical;border:0;border-bottom:1px solid var(--line);
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--line) 31px,var(--line) 32px);
+  line-height:32px;padding:0 4px;font-size:15.5px;font-family:inherit;color:var(--pen);outline:none}
+.act{display:flex;justify-content:flex-end;margin-top:6px}
+button.rv,.end button{cursor:pointer;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;padding:3px 12px;font-size:13.5px}
+button.rv:hover,.end button:hover{background:var(--red-soft)}
+.ans{margin-top:8px;padding:8px 12px;border:1.5px solid var(--red);border-radius:3px;color:var(--red);background:var(--paper);white-space:pre-line}
+.end{margin-top:36px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.end .ghost{border-color:var(--muted);color:var(--muted)}
+.fin{text-align:center;color:var(--muted);margin-top:22px;letter-spacing:.3em}
+.empty{color:var(--muted);text-align:center}
+.qt img,.ans img{display:block;max-width:100%;height:auto;margin:8px 0}
+.tw{overflow-x:auto;margin:6px 0}
+table.t{border-collapse:collapse;white-space:normal;font-size:15px}
+table.t th,table.t td{border:1px solid currentColor;padding:3px 10px;text-align:center}
+table.t th{font-weight:700}
+.fig{border:1.5px dashed var(--muted);color:var(--muted);padding:24px 12px;text-align:center;margin:8px 0;white-space:normal}
+code,.code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.code{display:block;white-space:pre;overflow-x:auto;border:1px solid var(--line);padding:6px 10px;margin:6px 0;line-height:1.6}
+button:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+[hidden]{display:none!important}
+.qh,.ah{display:flex;gap:8px;align-items:flex-start}
+.qh .qt{flex:1;min-width:0}
+.ah{justify-content:space-between}
+.tools{display:flex;gap:4px;flex:none}
+button.eb{cursor:pointer;border:1px solid var(--line);color:var(--muted);background:var(--paper);border-radius:3px;padding:1px 8px;font:12.5px/1.6 system-ui,sans-serif}
+button.eb:hover{border-color:var(--pen);color:var(--pen)}
+button.eb[aria-pressed="true"]{border-color:var(--pen);background:var(--pen);color:#fff}
+.ak{min-height:1.75em}
+.editing{outline:1px dashed var(--pen);outline-offset:3px;cursor:text;color:var(--ink)}
+@media (max-width:560px){.paper{padding:26px 18px 34px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav"><div class="nav-in">
+    <div class="chips" id="chips"></div>
+    <button type="button" class="tog" id="only" aria-pressed="false">只看標記題（0）</button>
+  </div></div>
+  <main class="paper">
+    <p class="school" id="sub"></p>
+    <h1 id="title"></h1>
+    <div class="rules" id="rules"></div>
+    <h2 id="section"></h2>
+    <ol class="qs" id="qs"></ol>
+    <p class="empty" id="empty" hidden>還沒有標記題，按題號旁的 ☆ 即可標記。</p>
+    <div class="end">
+      <button type="button" id="submit">交卷（公布全部答案）</button>
+      <button type="button" id="hide" class="ghost">收起答案</button>
+      <button type="button" id="clear" class="ghost">清除作答</button>
+    </div>
+    <p class="fin">— 試題結束 —</p>
+  </main>
+</div>
+
+<script>
+/* ★★★★★★★★★★ 設定區：只改這裡 ★★★★★★★★★★ */
+const CONFIG = {
+  subtitle: "計算機組織　期中考模擬",
+  title:    "期中模擬考（Ch1-1 ～ Ch4-3）",
+  section:  "一、計算與分析題（範圍依上課簡報，題型仿 Midterm Practice）"
+};
+
+const QUESTIONS = [
+  ["1", "<b>Performance Metrics</b>（Ch1-1、1-2）\n(a) For a program that computes the average of an array, who is mainly responsible for: (1) translating it into machine code, (2) allocating memory and managing system resources, and (3) executing the machine instructions?\n(b) A file server is upgraded. Before the upgrade, each request takes 3 s and the server completes 90 requests/min. After the upgrade, each request takes 2.5 s and the server completes 150 requests/min. By what factor does response-time performance improve, and by what percentage does throughput increase?\n(c) Computer A is 60% faster than Computer B. Computer B runs a program in 24 s. What is A's execution time, and by what percentage is it shorter than B's?\n(d) A program has an elapsed time of 40 s, of which 16 s is CPU time. The CPU is replaced by one that executes the CPU portion 4× as fast; all non-CPU time is unchanged. Calculate the new elapsed time and the overall speedup.", 6,
+   "a. ① Compiler　② Operating System　③ Processor\nb. Response time：3 / 2.5 = 1.2×；Throughput：(150 − 90) / 90 ≈ 66.7%\nc. T_A = 24 / 1.6 = 15 s；(24 − 15) / 24 = 37.5%（不是 60%）\nd. 24 + 16 / 4 = 28 s；Speedup = 40 / 28 ≈ 1.43×"],
+  ["2", "<b>CPU Time, CPI, and the MIPS Pitfall</b>（Ch1-3、1-4）\nA program is compiled by two compilers, X and Y, and run on the same 2 GHz processor.\n<table class=\"t\"><tr><th>Instruction Class</th><th>CPI</th><th>Compiler X</th><th>Compiler Y</th></tr><tr><td>A</td><td>1</td><td>400 million</td><td>800 million</td></tr><tr><td>B</td><td>2</td><td>200 million</td><td>300 million</td></tr><tr><td>C</td><td>4</td><td>200 million</td><td>150 million</td></tr></table>\n(a) Calculate the total instruction count, average CPI, and CPU execution time for each compiler.\n(b) Calculate the MIPS rating of each version. Which version has the higher MIPS, and which one actually runs faster? By what factor?\n(c) By what percentage is X's execution time shorter than Y's? Is this the same as the percentage by which X is faster?\n(d) A new processor runs at 2.5 GHz, but the CPI of Class C increases from 4 to 5. Using the code from Compiler X, calculate the new CPU execution time and the speedup over the original processor.", 8,
+   "a. X：IC = 800M，CPI = 2.0，T = 0.8 s；Y：IC = 1250M，CPI = 1.6，T = 1.0 s\nb. MIPS_X = 1000，MIPS_Y = 1250；Y 的 MIPS 較高，但 X 較快：1.0 / 0.8 = 1.25×\nc. (1.0 − 0.8) / 1.0 = 20%；不相同（X 快 25%，時間只少 20%）\nd. Cycles = 400 + 400 + 1000 = 1800M，T = 0.72 s，Speedup = 0.8 / 0.72 ≈ 1.11×"],
+  ["3", "<b>Power, SPEC, and Amdahl’s Law</b>（Ch1-4）\n(a) A processor is redesigned so that its capacitive load is 90%, its supply voltage is 80%, and its clock frequency is 125% of the original. Calculate P_new / P_old. Does dynamic power increase or decrease?\n(b) Another design raises the clock frequency by 21% with the same capacitive load. By what percentage must the voltage be reduced to keep dynamic power unchanged?\n(c) A reference machine runs three benchmarks in 60 s, 200 s, and 320 s. A new processor runs them in 30 s, 50 s, and 40 s. Calculate the three SPEC ratios and their geometric mean.\n(d) 90% of a program can be parallelized perfectly; the rest is serial. Calculate the overall speedup on 9 cores and the maximum speedup as the number of cores approaches infinity. How many cores are needed to reach an 8× speedup?", 7,
+   "a. 0.9 × 0.8² × 1.25 = 0.72；功耗下降約 28%\nb. 1.21 × (V_new / V_old)² = 1 → V_new / V_old = 1 / 1.1 ≈ 0.909；電壓降約 9.1%\nc. Ratios = 2、4、8；GM = ∛(2 × 4 × 8) = 4\nd. 1 / (0.1 + 0.9 / 9) = 5×；最大 1 / 0.1 = 10×；0.1 + 0.9 / n = 1/8 → n = 36"],
+  ["4", "<b>Number Representation and Logical Operations</b>（Ch2-2、2-3）\nAssume 8-bit values unless stated otherwise (bit 0 is the rightmost bit).\n(a) Interpret 1110 0110₂ as an unsigned integer and as a two's-complement signed integer. Extend it to 16 bits using zero extension and sign extension (answer in hexadecimal).\n(b) Compute 0111 0010₂ + 0010 1101₂ in 8-bit two's complement. Give the 8-bit result and its signed decimal value. Does signed overflow occur?\n(c) Data = 1100 1011₂. Design an AND mask that clears bits 0–2, then an OR mask that sets bits 4–5, and give the final result. If Data, the AND mask, and the OR mask are in $t1, $t2, and $t3, write the two MIPS instructions that leave the result in $t0.\n(d) Give the result (binary and signed decimal) of an arithmetic right shift of 1110 1000₂ by 3 bits and of a left shift of 0110 0100₂ by 1 bit. Then, with $s1 = 0xFFFFFFF0 and $s2 = 0x00000005, give $t0 after <code>slt $t0, $s1, $s2</code> and after <code>sltu $t0, $s1, $s2</code>.", 8,
+   "a. Unsigned = 230，Signed = −26；Zero-ext = 0x00E6，Sign-ext = 0xFFE6\nb. 1001 1111₂ = −97；有 overflow（正 + 正得負，真值 159 > 127）\nc. AND mask = 1111 1000₂，OR mask = 0011 0000₂，結果 = 1111 1000₂；<code>and $t0, $t1, $t2</code>、<code>or $t0, $t0, $t3</code>\nd. sra：1111 1101₂ = −3；sll：1100 1000₂ = −56（overflow）；slt → $t0 = 1，sltu → $t0 = 0"],
+  ["5", "<b>MIPS Instructions and Machine Code</b>（Ch2-2、2-5）\nConsider the following MIPS code. Assume standard 32-bit MIPS encoding.\n<span class=\"code\">Address       Instruction\n0x00400100    LOOP: sll  $t1, $s2, 2\n0x00400104          add  $t1, $t1, $s0\n0x00400108          sw   $t2, -4($t1)\n0x0040010C          addi $s2, $s2, -1\n0x00400110          bne  $s2, $zero, LOOP\n0x00400114          j    EXIT\n0x00400118          sub  $s1, $s1, $s2\n0x0040011C          add  $t0, $t0, $s1\n0x00400120    EXIT: or   $t3, $t1, $t2</span>(a) Identify the instruction format (R, I, or J) of sll, sw, and bne, and give the values of all encoding fields in decimal.\n(b) Convert <code>sw $t2, -4($t1)</code> into its 32-bit machine code in hexadecimal.\n(c) Calculate the 16-bit branch offset of bne in decimal and hexadecimal. If $s2 ≠ 0 after addi, what is the address of the next instruction executed?\n(d) Give the 26-bit address field and the 32-bit machine code (hexadecimal) of <code>j EXIT</code>. Could a j instruction at 0x00400114 jump directly to 0x10000040? Why?", 8,
+   "a.\n<table class=\"t\"><tr><th></th><th>Format</th><th>op</th><th>rs</th><th>rt</th><th>rd</th><th>shamt</th><th>funct / imm</th></tr><tr><td>sll</td><td>R</td><td>0</td><td>0</td><td>18</td><td>9</td><td>2</td><td>funct = 0</td></tr><tr><td>sw</td><td>I</td><td>43</td><td>9</td><td>10</td><td>—</td><td>—</td><td>imm = −4</td></tr><tr><td>bne</td><td>I</td><td>5</td><td>18</td><td>0</td><td>—</td><td>—</td><td>imm = −5</td></tr></table>\nb. 101011 01001 01010 1111111111111100 = 0xAD2AFFFC\nc. (0x00400100 − 0x00400114) / 4 = −5 = 0xFFFB；Next PC = 0x00400100\nd. Field = 0x00400120 >> 2 = 0x0100048，機器碼 = 0x08100048；不能：0x10000040 的高 4 bit（0001）≠ PC+4 的高 4 bit（0000）"],
+  ["6", "<b>MIPS Program Analysis</b>（Ch2-3、2-6）\n<span class=\"code\">        add  $v0, $zero, $zero\n        add  $v1, $zero, $zero\nLOOP:   lw   $t0, 0($a0)\n        beq  $t0, $zero, DONE\n        slt  $t1, $t0, $zero\n        bne  $t1, $zero, NEXT\n        add  $v0, $v0, $t0\n        addi $v1, $v1, 1\nNEXT:   addi $a0, $a0, 4\n        j    LOOP\nDONE:   sw   $v0, 0($a1)\n        sw   $v1, 4($a1)</span>Initially $a0 = 0x10010000 and $a1 = 0x10020000. Memory contains the following signed 32-bit words. Branch delay slots are not used.\n<table class=\"t\"><tr><th>Address</th><th>0x10010000</th><th>0x10010004</th><th>0x10010008</th><th>0x1001000C</th><th>0x10010010</th><th>0x10010014</th><th>0x10010018</th></tr><tr><td>Value</td><td>7</td><td>−3</td><td>12</td><td>−5</td><td>4</td><td>0</td><td>9</td></tr></table>\n(a) How many times is lw executed? Determine the final values of $v0, $v1, and $a0, and state what the program computes.\n(b) Determine the memory addresses and values written by the two sw instructions, and the total number of dynamically executed instructions (including both sw).\n(c) Suppose <code>slt $t1, $t0, $zero</code> is changed to <code>slt $t1, $zero, $t0</code>. Determine the new final values of $v0 and $v1, and the word stored at 0x10020000 in hexadecimal.", 7,
+   "a. lw 執行 6 次；$v0 = 23，$v1 = 3，$a0 = 0x10010014；計算以 0 結尾陣列中正數的總和與個數\nb. Mem[0x10020000] = 23，Mem[0x10020004] = 3；IC = 2 + 8×3 + 6×2 + 2 + 2 = 42\nc. 改為累加負數：$v0 = −8，$v1 = 2；Mem[0x10020000] = 0xFFFFFFF8"],
+  ["7", "<b>C-to-MIPS Code Translation</b>（Ch2-3）\n<span class=\"code\">int A[6] = {4, -2, 9, 0, -7, 5};\n\nfor (int i = 0; i &lt; 6; i++) {\n    if (A[i] &lt; 0)\n        A[i] = -A[i];\n    else\n        A[i] = A[i] * 2;\n}</span>Assume $s0 holds the base address of A, $t0 holds i, each element is a signed 32-bit word, multiplication must be done with a shift, and branch delay slots are not used. Fill in blanks (1)–(8); each blank is one instruction or operand.\n<span class=\"code\">        addi $t0, $zero, 0\nLOOP:   slti $t1, $t0, (1)\n        beq  $t1, $zero, END\n        sll  $t2, $t0, 2\n        (2)\n        (3)\n        (4)\n        beq  $t5, $zero, (5)\n        (6)\n        (7)\nELSE:   sll  $t4, $t4, 1\nSTORE:  (8)\n        addi $t0, $t0, 1\n        j    LOOP\nEND:    nop</span>(a) Fill in blanks (1)–(4).\n(b) Fill in blanks (5)–(8).\n(c) Give the final contents of A, the number of times instruction (7) is executed, and the total number of executed instructions (excluding nop).\n(d) If instruction (7) were omitted, what would the final contents of A be?", 8,
+   "a. (1) 6　(2) <code>add $t3, $s0, $t2</code>　(3) <code>lw $t4, 0($t3)</code>　(4) <code>slt $t5, $t4, $zero</code>\nb. (5) ELSE　(6) <code>sub $t4, $zero, $t4</code>　(7) <code>j STORE</code>　(8) <code>sw $t4, 0($t3)</code>\nc. A = {8, 2, 18, 0, 7, 10}；(7) 執行 2 次；IC = 1 + 12×2 + 11×4 + 2 = 71\nd. A = {8, 4, 18, 0, 14, 10}（負數取反後落入 ELSE 又 ×2）"],
+  ["8", "<b>Procedures and the Stack</b>（Ch2-4）\nProcedure calc is called with $a0 = 15, $a1 = 9, $a2 = 7, $a3 = 4, $s0 = 50, $s1 = 60, and $sp = 2000.\n<span class=\"code\">calc:  addi $sp, $sp, -8\n       sw   $s0, 4($sp)\n       sw   $s1, 0($sp)\n       add  $s0, $a0, $a1\n       sub  $s1, $a2, $a3\n       sll  $s1, $s1, 1\n       sub  $v0, $s0, $s1\n       lw   $s1, 0($sp)\n       lw   $s0, 4($sp)\n       addi $sp, $sp, 8\n       jr   $ra</span>(a) Determine the final value of $v0, and the stack addresses and values written by the two sw instructions.\n(b) Determine $s0, $s1, and $sp after calc returns. Why does calc not need to save $ra?\nThe recursive procedure sum computes n + (n − 1) + … + 0, with n in $a0 and the result in $v0.\n<span class=\"code\">sum:   addi $sp, $sp, -8\n       (1)\n       sw   $a0, 0($sp)\n       slti $t0, $a0, 1\n       beq  $t0, $zero, L1\n       addi $v0, $zero, 0\n       addi $sp, $sp, 8\n       jr   $ra\nL1:    addi $a0, $a0, -1\n       jal  sum\n       lw   $a0, 0($sp)\n       (2)\n       addi $sp, $sp, 8\n       add  $v0, $a0, $v0\n       jr   $ra</span>(c) Fill in blanks (1) and (2).\n(d) sum(6) is called with $sp = 2000. List the values of $a0 as the calls descend, the minimum value reached by $sp, and the final values of $v0 and $sp.", 8,
+   "a. $v0 = (15 + 9) − ((7 − 4) &lt;&lt; 1) = 18；Mem[1996] = 50（$s0），Mem[1992] = 60（$s1）\nb. $s0 = 50，$s1 = 60，$sp = 2000；calc 是 leaf procedure（不呼叫其他程序），$ra 不會被覆蓋\nc. (1) <code>sw $ra, 4($sp)</code>　(2) <code>lw $ra, 4($sp)</code>\nd. $a0：6 → 5 → 4 → 3 → 2 → 1 → 0；最小 $sp = 2000 − 7×8 = 1944；$v0 = 21，$sp = 2000"],
+  ["9", "<b>Byte Access, 32-bit Constants, and Pseudoinstructions</b>（Ch2-5、2-6）\n(a) $s0 = 0x10010000, Memory[0x10010000] = 0x9C, Memory[0x10010001] = 0x41, and $t0 = 0x12345678. Determine the result of each instruction independently:\n     <code>lb $t1, 0($s0)</code>　<code>lbu $t1, 0($s0)</code>　<code>lb $t1, 1($s0)</code>　<code>sb $t0, 1($s0)</code>\n(b) Load the 32-bit constant 0x00A3F0C5 into $s0 using lui and ori. If the second instruction were addi with the same 16-bit immediate field (0xF0C5), what value would $s0 hold? Why?\n(c) Expand <code>move $t1, $s2</code>, <code>bge $s0, $s1, L2</code>, and <code>not $t3, $t4</code> into actual MIPS instructions. How many actual instructions are generated, and which register does the assembler use?", 6,
+   "a. lb → $t1 = 0xFFFFFF9C；lbu → $t1 = 0x0000009C；lb 1($s0) → $t1 = 0x00000041；sb → Memory[0x10010001] = 0x78\nb. <code>lui $s0, 0x00A3</code>、<code>ori $s0, $s0, 0xF0C5</code>；用 addi 會 sign-extend 成 0xFFFFF0C5，得 0x00A2F0C5\nc. <code>add $t1, $zero, $s2</code>；<code>slt $at, $s0, $s1</code> + <code>beq $at, $zero, L2</code>；<code>nor $t3, $t4, $zero</code>；共 4 條，使用 $at"],
+  ["10", "<b>Single-Cycle Datapath and Control Signals</b>（Ch3-4、3-5）\nA standard MIPS single-cycle datapath supports R-type, lw, sw, beq, and addi. Each instruction below is executed independently with the initial register values. ALU control: AND = 0000, OR = 0001, add = 0010, subtract = 0110, slt = 0111.\n<table class=\"t\"><tr><th>Register</th><th>$s0</th><th>$s1</th><th>$s2</th><th>$t0</th><th>$t1</th></tr><tr><td>Value</td><td>200</td><td>36</td><td>36</td><td>7</td><td>0</td></tr></table><span class=\"code\">I1: sub  $t1, $s1, $t0\nI2: sw   $t0, -12($s0)\nI3: addi $t1, $s0, -50\nI4: beq  $s1, $s2, TARGET     # at 0x00400060, immediate field = 4</span>(a) Complete the table (use X for don't care). Some values are given.\n<table class=\"t\"><tr><th>Instruction</th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>ALUOp</th></tr><tr><td>I1: sub</td><td>?</td><td>?</td><td><b>0</b></td><td>?</td><td>?</td><td>?</td><td>?</td><td><b>10</b></td></tr><tr><td>I2: sw</td><td>?</td><td><b>1</b></td><td>?</td><td>?</td><td>?</td><td><b>1</b></td><td>?</td><td>?</td></tr><tr><td>I3: addi</td><td>?</td><td>?</td><td>?</td><td><b>1</b></td><td>?</td><td>?</td><td><b>0</b></td><td>?</td></tr><tr><td>I4: beq</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td><b>01</b></td></tr></table>\n(b) For I1–I3, give the two ALU inputs, the 4-bit ALU control, the ALU result, and what is written and where.\n(c) For I4, give the ALU result, Zero, PCSrc, the branch target address, and the Next PC.\n(d) If RegDst were stuck at 0, which of I1–I4 would execute incorrectly, and what would happen?", 8,
+   "a.\n<table class=\"t\"><tr><th></th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>ALUOp</th></tr><tr><td>sub</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>10</td></tr><tr><td>sw</td><td>X</td><td>1</td><td>X</td><td>0</td><td>0</td><td>1</td><td>0</td><td>00</td></tr><tr><td>addi</td><td>0</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>00</td></tr><tr><td>beq</td><td>X</td><td>0</td><td>X</td><td>0</td><td>0</td><td>0</td><td>1</td><td>01</td></tr></table>\nb. I1：36、7，0110，29 → $t1 = 29；I2：200、−12，0010，188 → Mem[188] = 7；I3：200、−50，0010，150 → $t1 = 150\nc. 36 − 36 = 0，Zero = 1，PCSrc = 1；Target = 0x00400064 + (4 &lt;&lt; 2) = 0x00400074 = Next PC\nd. 只有 I1：結果 29 寫入 rt = $t0（應寫入 $t1）"],
+  ["11", "<b>Datapath Tracing and Control Faults</b>（Ch3-3、3-5）\nPC = 0x00400044 and Instruction Memory[0x00400044] = 0x8D2AFFF8. Assume $t1 = 0x10010020, $t2 = 8, Memory[0x10010018] = 42, and Memory[0x10010028] = 99.\n(a) Decode the instruction into MIPS assembly and give PC + 4.\n(b) Give the sign-extended immediate, the ALU result, the data read from Data Memory, and the register written with its value.\n(c) Give the final value of the destination register for each independent control fault: (1) ALUSrc = 0, (2) MemtoReg = 0, (3) RegWrite = 0.\n(d) The next instruction, at 0x00400048, is 0x08100010. Decode it and give the 26-bit address field, the jump target, PCSrc, and the Next PC (Jump = 1, Branch = 0).", 7,
+   "a. op = 35、rs = 9、rt = 10、imm = 0xFFF8 → <code>lw $t2, -8($t1)</code>；PC + 4 = 0x00400048\nb. SignExt = 0xFFFFFFF8；ALU = 0x10010018；Read data = 42；$t2 = 42\nc. (1) 位址 = $t1 + $t2 = 0x10010028 → $t2 = 99　(2) $t2 = 0x10010018　(3) $t2 = 8（不變）\nd. j，field = 0x0100010；Target = {(PC+4)[31:28], field, 00} = 0x00400040；PCSrc = 0；Next PC = 0x00400040"],
+  ["12", "<b>Single-Cycle Processor Performance</b>（Ch3-2、3-6）\n<table class=\"t\"><tr><th>Component</th><th>Instruction Memory</th><th>Register File Read</th><th>ALU</th><th>Data Memory</th><th>Register File Write</th><th>Sign Extension</th><th>MUX</th></tr><tr><td>Delay (ps)</td><td>250</td><td>150</td><td>200</td><td>250</td><td>100</td><td>50</td><td>25</td></tr></table><table class=\"t\"><tr><th>Instruction</th><th>Components on Critical Path</th></tr><tr><td>R-type</td><td>Instruction Memory → Register File Read → MUX → ALU → MUX → Register File Write</td></tr><tr><td>lw</td><td>Instruction Memory → Register File Read → MUX → ALU → Data Memory → MUX → Register File Write</td></tr><tr><td>sw</td><td>Instruction Memory → Register File Read → MUX → ALU → Data Memory</td></tr><tr><td>beq</td><td>Instruction Memory → Register File Read → MUX → ALU → MUX</td></tr></table>\n(a) Calculate the critical-path delay of each instruction type, the minimum clock cycle time, and the instruction that determines it.\n(b) How much time is wasted in each clock cycle when executing an R-type and a beq instruction? If the clock period were set to 900 ps, which instruction type(s) would fail, and why?\n(c) A program executes 4,500 R-type, 2,500 lw, 1,000 sw, and 2,000 beq instructions. Calculate its execution time. Option A reduces the Data Memory delay to 150 ps; Option B reduces the ALU delay to 150 ps. Calculate the new execution time and speedup of each option. Which is better?", 7,
+   "a. R = 750 ps，lw = 1000 ps，sw = 875 ps，beq = 650 ps；T_clk = 1000 ps，由 lw 決定\nb. R-type 浪費 250 ps，beq 浪費 350 ps；900 ps 時 lw 失敗（1000 > 900，結果來不及在下一個 clock edge 前寫入）\nc. 10,000 × 1000 ps = 10 μs；A：T_clk = 900 ps → 9 μs，1.11×；B：T_clk = 950 ps → 9.5 μs，1.05×；A 較好"],
+  ["13", "<b>Exceptions and Interrupts</b>（Ch3-6）\nUse the course convention: Cause is 1 bit (0 = undefined opcode, 1 = arithmetic overflow), EPC holds the address of the instruction that caused the exception, and the common handler is at 0x80000180.\n(a) Classify each event as an exception or an interrupt: (1) an add produces signed overflow, (2) a network controller signals that a packet has arrived, (3) the CPU fetches an undefined opcode, (4) a program executes syscall.\n(b) An arithmetic overflow occurs in the instruction at 0x00400104. Give EPC, Cause, and PC immediately after the exception is detected.\n(c) An exception occurs at 0x00400148. Give the handler action (Restart, Continue, or Terminate) and the Resume PC when: (1) the problem is corrected and the instruction must be re-executed, (2) it is a syscall whose service is completed, (3) the error cannot be corrected.\n(d) The syscall below completes successfully and the handler resumes the program. Initially $s0 = 0.\n<span class=\"code\">0x00400200        addi $t0, $zero, 3\n0x00400204        syscall\n0x00400208  LOOP: add  $s0, $s0, $t0\n0x0040020C        addi $t0, $t0, -1\n0x00400210        bne  $t0, $zero, LOOP\n0x00400214        sw   $s0, 0($gp)</span>Give EPC when the syscall occurs, the Resume PC, the 16-bit offset field of bne, the number of times bne is executed, and the final values of $t0 and $s0.", 7,
+   "a. (1) Exception　(2) Interrupt　(3) Exception　(4) Exception\nb. EPC = 0x00400104，Cause = 1，PC = 0x80000180\nc. (1) Restart，0x00400148（EPC）　(2) Continue，0x0040014C（EPC + 4）　(3) Terminate，不恢復執行\nd. EPC = 0x00400204，Resume PC = 0x00400208；offset = −3 = 0xFFFD；bne 執行 3 次；$t0 = 0，$s0 = 6"],
+  ["14", "<b>Pipeline Timing and Performance</b>（Ch4-1、4-3）\nA five-stage MIPS pipeline (IF → ID → EX → MEM → WB) has the following stage delays. The pipelined clock equals the slowest stage; a single-cycle clock equals the sum of all stages.\n<table class=\"t\"><tr><th>Stage</th><th>IF</th><th>ID</th><th>EX</th><th>MEM</th><th>WB</th></tr><tr><td>Delay (ps)</td><td>200</td><td>150</td><td>180</td><td>250</td><td>120</td></tr></table><span class=\"code\">I1: add  $t0, $s1, $s2\nI2: lw   $t1, 8($s3)\nI3: sub  $t2, $s4, $s5\nI4: or   $t3, $s6, $s7\nI5: sw   $t4, 0($s3)\nI6: and  $t5, $s1, $s4</span>The pipeline is initially empty and there are no stalls.\n(a) Identify the instruction in each stage at CC4 and CC7 (write None if empty). In which cycle does I6 complete? At CC5, which instruction uses the Data Memory, and which uses the Register File write port?\n(b) Calculate the clock cycle time and total execution time of the six instructions on the single-cycle processor and on the pipeline. What is the speedup?\n(c) The MEM stage is optimized from 250 ps to 160 ps. What is the new pipeline clock cycle time and its percentage reduction?\n(d) After (c), the design is compared with an 8-stage pipeline with a 140 ps clock. Compare their single-instruction latency, and find the minimum number of instructions for which the 8-stage pipeline finishes sooner.", 8,
+   "a. CC4：IF I4、ID I3、EX I2、MEM I1、WB None；CC7：IF None、ID I6、EX I5、MEM I4、WB I3；I6 於 CC10 完成；CC5：Data Memory = I2，Register write = I1\nb. Single：900 ps，6 × 900 = 5400 ps；Pipeline：250 ps，(6 + 4) × 250 = 2500 ps；Speedup = 2.16\nc. T_clk = max(200, 150, 180, 160, 120) = 200 ps；降 (250 − 200) / 250 = 20%\nd. Latency：5 × 200 = 1000 ps vs 8 × 140 = 1120 ps；140(n + 7) &lt; 200(n + 4) → n > 3，最少 4 條"],
+  ["15", "<b>Pipelined Datapath and Control Signals</b>（Ch4-2、4-3）\nControl signals are generated in ID and passed through the pipeline registers. There are no stalls or hazards; I1 is fetched in CC1.\n<span class=\"code\">I1: sw   $t0, 16($s0)\nI2: beq  $s1, $s2, L1     # not taken\nI3: lw   $t1, 4($s3)\nI4: or   $t2, $s4, $s5\nI5: addi $t3, $s6, 10\nI6: and  $t4, $s1, $s2</span>(a) Group RegDst, ALUSrc, ALUOp (2 bits), Branch, MemRead, MemWrite, RegWrite, and MemtoReg into EX, M, and WB groups. How many control bits are stored in ID/EX, EX/MEM, and MEM/WB?\n(b) At CC5, which instruction is associated with ID/EX, EX/MEM, and MEM/WB? Give the control signal values used by the EX, MEM, and WB stages in this cycle.\n(c) In which cycle does I3 write $t1? Which instruction is in ID at that time? If WB wrongly used the destination register number from ID, which register would be written?\n(d) For another instruction, the following values are observed: EX: ALU Result = 0x1001002C; MEM: Memory Read Data = 0x0000007B; WB: $t6 receives 0x0000007B. Assume $s3 = 0x10010000. Write the complete MIPS instruction.", 7,
+   "a. EX：RegDst、ALUSrc、ALUOp（4 bits）；M：Branch、MemRead、MemWrite（3）；WB：RegWrite、MemtoReg（2）；ID/EX = 9，EX/MEM = 5，MEM/WB = 2\nb. ID/EX = I3 (lw)：RegDst 0、ALUSrc 1、ALUOp 00；EX/MEM = I2 (beq)：Branch 1、MemRead 0、MemWrite 0；MEM/WB = I1 (sw)：RegWrite 0、MemtoReg X\nc. CC7；ID 為 I6 (and)；會錯寫入 $t4（應為 $t1）\nd. <code>lw $t6, 44($s3)</code>"]
+];
+/* ★★★★★★★★★★ 設定區結束 ★★★★★★★★★★ */
+
+document.title = CONFIG.title;
+document.getElementById("sub").textContent = CONFIG.subtitle;
+document.getElementById("title").textContent = CONFIG.title;
+document.getElementById("section").textContent = CONFIG.section;
+document.getElementById("rules").textContent =
+  `注意：本卷共 ${QUESTIONS.length} 題，作答會自動保存在本機瀏覽器。按題號旁 ☆ 標記題目，上方可跳題或只看標記題；逐題「對答案」或卷末「交卷」公布全部答案；按題目或答案旁的「編輯」可修改該區塊。`;
+
+// 頂欄固定在畫面最上方，依實際高度保留空間
+const nav = document.querySelector(".nav");
+const fitNav = () => document.documentElement.style.setProperty("--navh", nav.offsetHeight + "px");
+new ResizeObserver(fitNav).observe(nav); fitNav();
+
+const KEY = "exam-" + CONFIG.subtitle + CONFIG.title;
+let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+saved.marks = saved.marks || {}; saved.q = saved.q || {}; saved.k = saved.k || {};
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+
+const ol = document.getElementById("qs"), chips = document.getElementById("chips");
+const wrapTables = el => el.querySelectorAll("table").forEach(t => {
+  if (t.parentElement.classList.contains("tw")) return;
+  const w = document.createElement("div"); w.className = "tw"; t.before(w); w.appendChild(t); });
+// 一次只編輯一個區塊（題目或答案）
+let editing = null;
+function stopEdit() {
+  if (!editing) return;
+  const { el, btn, rs } = editing;
+  el.contentEditable = false; el.classList.remove("editing");
+  btn.textContent = "編輯"; btn.setAttribute("aria-pressed", "false"); rs.hidden = true;
+  editing = null;
+}
+function editable(el, tools, restore) {
+  const [rs, btn] = tools.querySelectorAll("button");
+  btn.onclick = () => {
+    const mine = editing && editing.el === el;
+    stopEdit();
+    if (mine) return;
+    editing = { el, btn, rs };
+    el.contentEditable = true; el.classList.add("editing");
+    btn.textContent = "完成"; btn.setAttribute("aria-pressed", "true"); rs.hidden = false;
+    el.focus();
+  };
+  rs.onclick = restore;
+}
+const TOOLS = `<span class="tools"><button type="button" class="eb" hidden>還原原文</button><button type="button" class="eb" aria-pressed="false">編輯</button></span>`;
+const items = QUESTIONS.map(([no, q, rows, a], i) => {
+  const li = document.createElement("li"); li.className = "q"; li.id = "q" + i;
+  li.innerHTML = `<div class="num"><span>${no}.</span><button type="button" class="star" title="標記這題">★</button></div>
+    <div class="qb"><div class="qh"><p class="qt"></p>${TOOLS}</div>
+    <textarea rows="${rows + 1}"></textarea>
+    <div class="act"><button type="button" class="rv">對答案</button></div>
+    <div class="ans" hidden><div class="ah"><b>參考答案</b>${TOOLS}</div><div class="ak"></div></div></div>`;
+  const qt = li.querySelector(".qt"), ak = li.querySelector(".ak");
+  qt.innerHTML = saved.q[i] ?? q;
+  ak.innerHTML = saved.k[i] ?? a;
+  wrapTables(li);
+  qt.oninput = () => { saved.q[i] = qt.innerHTML; save(); };
+  ak.oninput = () => { saved.k[i] = ak.innerHTML; save(); };
+  const [qTools, aTools] = li.querySelectorAll(".tools");
+  editable(qt, qTools, () => { delete saved.q[i]; save(); qt.innerHTML = q; wrapTables(qt); });
+  editable(ak, aTools, () => { delete saved.k[i]; save(); ak.innerHTML = a; wrapTables(ak); });
+  const ta = li.querySelector("textarea");
+  ta.value = saved["a" + i] || "";
+  ta.oninput = () => { saved["a" + i] = ta.value; save(); };
+  li.querySelector(".star").onclick = () => { saved.marks[i] = !saved.marks[i]; save(); refresh(); };
+  ol.appendChild(li);
+  const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = no;
+  c.title = "跳到第 " + no + " 題"; c.onclick = () => li.scrollIntoView({ behavior: "smooth", block: "start" });
+  chips.appendChild(c);
+  return { li, c };
+});
+
+const only = document.getElementById("only");
+function refresh() {
+  const on = only.getAttribute("aria-pressed") === "true";
+  let n = 0;
+  items.forEach(({ li, c }, i) => {
+    const m = !!saved.marks[i]; if (m) n++;
+    li.classList.toggle("m", m); c.classList.toggle("m", m);
+    li.querySelector(".star").title = m ? "取消標記" : "標記這題";
+    li.hidden = on && !m; c.hidden = on && !m;
+  });
+  only.textContent = `只看標記題（${n}）`;
+  document.getElementById("empty").hidden = !(on && n === 0);
+}
+only.onclick = () => { only.setAttribute("aria-pressed", only.getAttribute("aria-pressed") !== "true"); refresh(); };
+refresh();
+
+const btns = [...document.querySelectorAll(".rv")];
+const set = (b, open) => {
+  const ans = b.parentElement.nextElementSibling;
+  if (!open && editing && ans.contains(editing.el)) stopEdit();
+  ans.hidden = !open; b.textContent = open ? "收起" : "對答案";
+};
+btns.forEach(b => b.onclick = () => set(b, b.textContent === "對答案"));
+document.getElementById("submit").onclick = () => btns.forEach(b => set(b, true));
+document.getElementById("hide").onclick = () => btns.forEach(b => set(b, false));
+document.addEventListener("paste", e => {
+  if (!document.activeElement.isContentEditable) return;
+  e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+});
+let armed = false;
+document.getElementById("clear").onclick = e => {
+  if (!armed) { armed = true; e.target.textContent = "再按一次確認清除（標記與編輯會保留）";
+    setTimeout(() => { armed = false; e.target.textContent = "清除作答"; }, 4000); return; }
+  saved = { marks: saved.marks, q: saved.q, k: saved.k }; save(); document.querySelectorAll("textarea").forEach(el => el.value = "");
+  armed = false; e.target.textContent = "清除作答";
+};
+</script>
+</body>
+</html>
