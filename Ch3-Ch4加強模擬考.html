@@ -1,0 +1,267 @@
+<!--
+=====================================================================
+  考卷網頁模板（單一 HTML 檔，直接用瀏覽器開啟即可）
+
+  給 AI 的說明：
+  1. 只需修改下方「★ 設定區」的 CONFIG 與 QUESTIONS，其他程式碼不要動。
+  2. QUESTIONS 每一題格式：
+       ["題號", "題目", 作答區行數, "參考答案"]
+     - 題目、答案中換行請用 \n
+     - 字串中若有雙引號 " 請寫成 \"
+     - 參考答案必須是「考試作答」的寫法：只寫得分要點，不解釋、不舉多餘例子
+       · 用 ①②③ 或 a. b. 條列，每點一句話，全題 1~4 行
+       · 選擇／排序／配對題只寫代號（例："f → c → a"）
+       · 不要寫「因為…所以…」的長段落，不要寫背景說明
+  3. 題數不限，照格式往下加即可。
+  4. 題目與答案可以寫 HTML，用來放表格、圖片：
+     - 表格：用 <table class="t"> ... </table>，整個表格寫在同一行
+         例："<table class=\"t\"><tr><th>行程</th><th>到達時間</th></tr><tr><td>P1</td><td>0</td></tr></table>"
+     - 圖片：<img src="圖片網址或檔名.png" alt="圖說">
+         · 用檔名時，圖片要和這個 HTML 檔放在同一個資料夾
+         · 講義上的圖也可以轉成 base64：<img src="data:image/png;base64,....">
+     - 拿不到圖片時，放圖片預留框，之後再手動換成 <img>：
+         <div class="fig">【圖】此處放講義第 xx 頁的 ○○ 圖</div>
+     - 程式碼區塊（保留空白與縮排）：<span class="code">add  $t0, $s1, $s2\nlw   $t1, 12($t0)</span>
+     - 文字中的「<」要寫成 &lt;，「&」要寫成 &amp;（否則會被當成 HTML）
+     - 粗體可用 <b>…</b>，程式碼可用 <code>…</code>
+=====================================================================
+-->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考卷</title>
+<style>
+:root{--desk:#eef1f4;--paper:#fff;--ink:#111418;--muted:#5f6670;--line:#ccd3db;--pen:#1d3f9e;
+  --red:#c62828;--red-soft:#fdeeee;--mark:#e08a00;--mark-soft:#fff6e0;color-scheme:light}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:"Noto Serif TC","PMingLiU",serif;font-size:16px;line-height:1.75}
+.wrap{max-width:820px;margin:0 auto;padding:calc(var(--navh,60px) + 10px) 16px 56px}
+.nav{position:fixed;top:0;left:0;right:0;z-index:5;background:var(--desk);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.nav-in{max-width:820px;margin:0 auto;padding:10px 16px 8px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:4px;flex:1 1 300px;min-width:0}
+.chip{font:13px/1 system-ui,sans-serif;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:3px;padding:5px 7px;cursor:pointer}
+.chip.m{background:var(--mark);border-color:var(--mark);color:#fff;font-weight:700}
+.chip:hover{border-color:var(--ink)}
+.tog{font:13px system-ui,sans-serif;border:1px solid var(--mark);color:var(--mark);background:var(--paper);border-radius:3px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.tog[aria-pressed="true"]{background:var(--mark);color:#fff}
+.paper{background:var(--paper);padding:40px 52px 52px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.school{text-align:center;letter-spacing:.3em;margin:0}
+h1{text-align:center;font-size:clamp(22px,4.6vw,30px);letter-spacing:.12em;margin:4px 0 18px}
+.rules{font-size:14px;color:var(--muted);border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0;margin-bottom:22px}
+h2{font-size:18px;margin:0 0 14px}
+ol.qs{list-style:none;margin:0;padding:0;display:grid;gap:22px}
+.q{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:6px 8px;margin:0 -8px;border-left:3px solid transparent;scroll-margin-top:calc(var(--navh,60px) + 12px)}
+.q.m{border-left-color:var(--mark);background:var(--mark-soft)}
+.num{display:flex;flex-direction:column;align-items:center;gap:2px}
+.star{border:0;background:none;cursor:pointer;font-size:20px;line-height:1;color:var(--line);padding:2px}
+.q.m .star{color:var(--mark)}
+.star:hover{color:var(--mark)}
+.qb{min-width:0}.qt{margin:0;white-space:pre-line}
+textarea{display:block;width:100%;box-sizing:border-box;margin-top:8px;resize:vertical;border:0;border-bottom:1px solid var(--line);
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,var(--line) 31px,var(--line) 32px);
+  line-height:32px;padding:0 4px;font-size:15.5px;font-family:inherit;color:var(--pen);outline:none}
+.act{display:flex;justify-content:flex-end;margin-top:6px}
+button.rv,.end button{cursor:pointer;border:1px solid var(--red);color:var(--red);background:transparent;border-radius:3px;padding:3px 12px;font-size:13.5px}
+button.rv:hover,.end button:hover{background:var(--red-soft)}
+.ans{margin-top:8px;padding:8px 12px;border:1.5px solid var(--red);border-radius:3px;color:var(--red);background:var(--paper);white-space:pre-line}
+.end{margin-top:36px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.end .ghost{border-color:var(--muted);color:var(--muted)}
+.fin{text-align:center;color:var(--muted);margin-top:22px;letter-spacing:.3em}
+.empty{color:var(--muted);text-align:center}
+.qt img,.ans img{display:block;max-width:100%;height:auto;margin:8px 0}
+.tw{overflow-x:auto;margin:6px 0}
+table.t{border-collapse:collapse;white-space:normal;font-size:15px}
+table.t th,table.t td{border:1px solid currentColor;padding:3px 10px;text-align:center}
+table.t th{font-weight:700}
+.fig{border:1.5px dashed var(--muted);color:var(--muted);padding:24px 12px;text-align:center;margin:8px 0;white-space:normal}
+code,.code{font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.code{display:block;white-space:pre;overflow-x:auto;border:1px solid var(--line);padding:6px 10px;margin:6px 0;line-height:1.6}
+button:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+[hidden]{display:none!important}
+.qh,.ah{display:flex;gap:8px;align-items:flex-start}
+.qh .qt{flex:1;min-width:0}
+.ah{justify-content:space-between}
+.tools{display:flex;gap:4px;flex:none}
+button.eb{cursor:pointer;border:1px solid var(--line);color:var(--muted);background:var(--paper);border-radius:3px;padding:1px 8px;font:12.5px/1.6 system-ui,sans-serif}
+button.eb:hover{border-color:var(--pen);color:var(--pen)}
+button.eb[aria-pressed="true"]{border-color:var(--pen);background:var(--pen);color:#fff}
+.ak{min-height:1.75em}
+.editing{outline:1px dashed var(--pen);outline-offset:3px;cursor:text;color:var(--ink)}
+@media (max-width:560px){.paper{padding:26px 18px 34px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav"><div class="nav-in">
+    <div class="chips" id="chips"></div>
+    <button type="button" class="tog" id="only" aria-pressed="false">只看標記題（0）</button>
+  </div></div>
+  <main class="paper">
+    <p class="school" id="sub"></p>
+    <h1 id="title"></h1>
+    <div class="rules" id="rules"></div>
+    <h2 id="section"></h2>
+    <ol class="qs" id="qs"></ol>
+    <p class="empty" id="empty" hidden>還沒有標記題，按題號旁的 ☆ 即可標記。</p>
+    <div class="end">
+      <button type="button" id="submit">交卷（公布全部答案）</button>
+      <button type="button" id="hide" class="ghost">收起答案</button>
+      <button type="button" id="clear" class="ghost">清除作答</button>
+    </div>
+    <p class="fin">— 試題結束 —</p>
+  </main>
+</div>
+
+<script>
+/* ★★★★★★★★★★ 設定區：只改這裡 ★★★★★★★★★★ */
+const CONFIG = {
+  subtitle: "計算機組織　Ch3 ～ Ch4 加強練習",
+  title:    "Ch3 處理器 ＋ Ch4 Pipelining　加強模擬考",
+  section:  "一、計算與分析題（範圍 Ch3-1 ～ Ch4-3，題型仿 Midterm Practice）"
+};
+
+const QUESTIONS = [
+  ["1", "<b>Instruction Execution and Datapath Components</b>（Ch3-1、3-3、3-5）\n(a) A processor executes <code>lw $t1, -4($s0)</code>. Put the following operations in the correct order:\nA. Data Memory outputs the word at the effective address\nB. The PC is sent to Instruction Memory and the instruction is fetched\nC. The ALU adds the base register value and the sign-extended offset\nD. The loaded word is written into register rt\nE. The Register File reads the base register rs\n(b) Complete the table for the five instructions below. Mark ✓ only if the instruction needs that component; for Data Memory write Read, Write, or —; for the ALU, describe its role (or — if the ALU result is not used).\n<span class=\"code\">slt $t0, $s1, $s2      lw  $t1, -4($s0)      sw  $t1, 8($s0)\nbeq $s1, $s2, L1       j   L2</span><table class=\"t\"><tr><th>Instruction</th><th>ALU role</th><th>Sign Extend</th><th>Data Memory</th><th>Register Write</th><th>Branch-target Adder</th></tr><tr><td>slt</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>lw</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>sw</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>beq</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>j</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr></table>\n(c) Why can't two signal sources simply be wired together at the same input? What two kinds of inputs does a multiplexer need? For the MUX in front of the ALU's second input, give the control signal value and the selected input for slt, lw, and beq.", 6,
+   "a. B → E → C → A → D\nb.\n<table class=\"t\"><tr><th></th><th>ALU role</th><th>Sign Extend</th><th>Data Memory</th><th>Register Write</th><th>Branch-target Adder</th></tr><tr><td>slt</td><td>比較大小（set on less than）</td><td>—</td><td>—</td><td>✓</td><td>—</td></tr><tr><td>lw</td><td>計算 effective address</td><td>✓</td><td>Read</td><td>✓</td><td>—</td></tr><tr><td>sw</td><td>計算 effective address</td><td>✓</td><td>Write</td><td>—</td><td>—</td></tr><tr><td>beq</td><td>相減比較（看 Zero）</td><td>✓</td><td>—</td><td>—</td><td>✓</td></tr><tr><td>j</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr></table>\nc. 兩個來源同時驅動同一條線會衝突，要用 MUX 擇一；MUX 需要多個 data inputs ＋ select（control）signal；ALUSrc：slt = 0 → Read Data 2，lw = 1 → sign-extended imm，beq = 0 → Read Data 2"],
+  ["2", "<b>Logic Design Basics and Clocking</b>（Ch3-2）\n(a) Classify each element as combinational or state (sequential): PC, ALU, Multiplexer, Register File, Sign-extension unit, Data Memory, PC + 4 Adder.\n(b) A circuit has two 4-bit inputs A and B and a select input S. It outputs Y = A AND B (bitwise) when S = 0, and Y = A + B (lower 4 bits) when S = 1. Which combinational elements are required? Give Y for A = 0110, B = 0101 with S = 0 and S = 1. Also write the Boolean expressions of a 1-bit half adder, and give Sum and Carry for A = 1, B = 1.\n(c) A register with write control initially stores Q = 12. Give Q after each rising clock edge.\n<table class=\"t\"><tr><th>Rising edge</th><th>1</th><th>2</th><th>3</th><th>4</th></tr><tr><td>D</td><td>5</td><td>9</td><td>3</td><td>14</td></tr><tr><td>Write</td><td>0</td><td>1</td><td>1</td><td>0</td></tr></table>\nBetween edges 2 and 3, D briefly changes to 6 while Write = 1. Does Q ever become 6? Why?\n(d) Two combinational paths end at Register C (ignore register delays):\nPath 1: Register A → ALU (4.5 ns) → MUX (1 ns) → Register C\nPath 2: Register B → Sign-extend (1 ns) → Adder (4 ns) → MUX (1 ns) → Register C\nFind the minimum clock period and the maximum clock frequency. If T_clk = 5.8 ns, which path fails? Which clocking structure does the loop PC → Adder (+4) → PC use?", 6,
+   "a. State：PC、Register File、Data Memory；Combinational：ALU、MUX、Sign-extension、Adder\nb. AND gate ＋ Adder ＋ 2-to-1 MUX（S 為 select）；S = 0 → 0100，S = 1 → 1011；Sum = A XOR B，Carry = A AND B → Sum = 0，Carry = 1\nc. Edge 1～4：Q = 12、9、3、3；不會變 6（edge-triggered，只在 rising edge 且 Write = 1 時更新）\nd. Path 1 = 5.5 ns，Path 2 = 6 ns → T_min = 6 ns，f_max ≈ 166.7 MHz；5.8 ns 時 Path 2 失敗；State element → Combinational → 同一個 state element"],
+  ["3", "<b>Instruction Fetch and R-format Tracing</b>（Ch3-3、3-4）\nPC = 0x004000A8 and Instruction Memory[0x004000A8] = 0x0295582A. Assume $s4 = −6 (0xFFFFFFFA) and $s5 = 3.\n(a) Give the two outputs of instruction fetch. Decode the instruction: give opcode, rs, rt, rd, shamt, and funct in decimal, and write it in MIPS assembly.\n(b) Give Read Register 1, Read Register 2, Read Data 1, Read Data 2, the 4-bit ALU control, the ALU result, Write Register, and Write Data (hexadecimal).\n(c) If only bits 5:0 of the instruction were changed to 100010, which instruction would be executed, and what value (hexadecimal) would be written? Give the new machine code.\n(d) Another R-format instruction is observed with rs = 17, rt = 18, rd = 16, Read Data 1 = 0x0000F0F0, Read Data 2 = 0x00FF00FF, and ALU Result = 0x00FFF0FF. Identify the instruction, its ALU control, and its machine code in hexadecimal.", 6,
+   "a. Instruction = 0x0295582A，PC + 4 = 0x004000AC；op = 0、rs = 20、rt = 21、rd = 11、shamt = 0、funct = 42 → <code>slt $t3, $s4, $s5</code>\nb. Read Reg 1 = 20、Read Reg 2 = 21；Read Data 1 = 0xFFFFFFFA、Read Data 2 = 0x00000003；ALU control = 0111；−6 &lt; 3 → ALU result = 0x00000001；Write Reg = 11（$t3），Write Data = 0x00000001\nc. <code>sub $t3, $s4, $s5</code>：−6 − 3 = −9 → $t3 = 0xFFFFFFF7；機器碼 0x02955822\nd. 0x0000F0F0 OR 0x00FF00FF = 0x00FFF0FF → <code>or $s0, $s1, $s2</code>；ALU control = 0001；0x02328025"],
+  ["4", "<b>Load/Store Tracing and Debugging</b>（Ch3-3）\n(a) Trace <code>sw $t5, -20($s6)</code> with $s6 = 0x10000040 and $t5 = 0x000000FF. Give the machine code, the 16-bit immediate, the sign-extended immediate, the ALU result, the data written to memory and its address, and which register (if any) is written.\n(b) A student traces <code>lw $s3, -8($gp)</code> with $gp = 0x10008000, Memory[0x10007FF8] = 0x0000004D, and Memory[0x10008008] = 0x00000011:\n<table class=\"t\"><tr><th>Value</th><th>Student's answer</th></tr><tr><td>Read Data 1</td><td>0x10008000</td></tr><tr><td>Sign-Extended Immediate</td><td>0xFFFFFFF8</td></tr><tr><td>ALU Result</td><td>0x10008008</td></tr><tr><td>Memory Read Data</td><td>0x00000011</td></tr><tr><td>Write Register</td><td>28 ($gp)</td></tr><tr><td>Write Data</td><td>0x00000011</td></tr></table>\nFind every incorrect value and correct it.\n(c) After address calculation, the datapath shows: rs = 8 ($t0) with Read Data 1 = 0x1000A000, rt = 9 ($t1) with Read Data 2 = 0x00000037, ALU Result = 0x1000A010; Data Memory is written and the Register File is not written. Identify the instruction and describe what happens to 0x00000037.", 5,
+   "a. 0xAECDFFEC；imm = 0xFFEC；SignExt = 0xFFFFFFEC；ALU = 0x1000002C；Mem[0x1000002C] ← 0x000000FF；不寫任何暫存器\nb. 錯 4 個：ALU Result = 0x10007FF8；Memory Read Data = 0x0000004D；Write Register = 19（$s3，lw 寫入 rt）；Write Data = 0x0000004D\nc. <code>sw $t1, 16($t0)</code>；0x00000037 寫入 Mem[0x1000A010]"],
+  ["5", "<b>Branch Tracing</b>（Ch3-3、3-5）\n<span class=\"code\">Address       Instruction\n0x00400300    L1:  sub  $t0, $t0, $t1\n0x00400304         sw   $t0, 0($s0)\n0x00400308         beq  $t0, $t2, L1\n0x0040030C         and  $t3, $t0, $t1\n0x00400310         beq  $t3, $zero, L2\n0x00400314         or   $t4, $t0, $t1\n0x00400318         add  $t5, $t4, $t4\n0x0040031C    L2:  j    L1</span>(a) Calculate the 16-bit offset field of both beq instructions (decimal and hexadecimal), and give the machine code of <code>beq $t0, $t2, L1</code>.\n(b) For the beq at 0x00400308 with $t0 = $t2 = 0x00000015, give PC + 4, the ALU result, Zero, the sign-extended immediate, the shifted offset, the branch target, PCSrc, and the Next PC.\n(c) For the beq at 0x00400310 with $t3 = 0x00000004, give the ALU result, Zero, PCSrc, the branch target computed by the adder, and the Next PC.\n(d) The and instruction at 0x0040030C happens to produce ALU result 0. Give Branch, Zero, PCSrc, and the Next PC. Why does Zero = 1 not change the PC here?", 6,
+   "a. beq1：(0x00400300 − 0x0040030C) / 4 = −3 = 0xFFFD；beq2：(0x0040031C − 0x00400314) / 4 = 2 = 0x0002；0x110AFFFD\nb. PC + 4 = 0x0040030C；ALU = 0，Zero = 1；SignExt = 0xFFFFFFFD；Shifted = 0xFFFFFFF4（−12）；Target = 0x00400300；PCSrc = 1；Next PC = 0x00400300\nc. ALU = 4 − 0 = 4，Zero = 0，PCSrc = 0；Target = 0x0040031C（照算但不採用）；Next PC = 0x00400314\nd. Branch = 0，Zero = 1，PCSrc = 0，Next PC = 0x00400310；PCSrc = Branch AND Zero，Branch = 0 就不分支"],
+  ["6", "<b>ALU Control and Don't Care</b>（Ch3-4）\nALU control: AND = 0000, OR = 0001, add = 0010, subtract = 0110, slt = 0111, NOR = 1100.\n(a) Complete the table. \"Bits 5:0\" are the lowest six bits of each 32-bit instruction word.\n<table class=\"t\"><tr><th>Instruction</th><th>ALUOp</th><th>Bits 5:0</th><th>ALU control</th><th>ALU function</th></tr><tr><td><code>lw $t0, 42($s0)</code></td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td><code>beq $t1, $t2, 37</code></td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td><code>slt $t3, $t4, $t5</code></td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td><code>or $t6, $t7, $s0</code></td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td><code>sw $s1, 36($sp)</code></td><td>?</td><td>?</td><td>?</td><td>?</td></tr></table>\n(b) For which instructions in (a) do bits 5:0 affect the ALU control output? Bits 5:0 of the lw look exactly like the funct of slt — why does the ALU still add? What does X (don't care) mean?\n(c) Given RegDst = 0, ALUSrc = 1, MemtoReg = 0, RegWrite = 1, MemRead = 0, and MemWrite = 0: which input does each MUX select, and which instruction among add, lw, sw, beq, and addi matches? Does RegDst = 0 mean the MUX is disabled?\n(d) A designer wrongly gives addi the R-type ALUOp (10). If <code>addi $t0, $t1, 34</code> is executed with $t1 = 50, what ALU operation is performed and what value is written to $t0? What is the correct value?", 6,
+   "a.\n<table class=\"t\"><tr><th></th><th>ALUOp</th><th>Bits 5:0</th><th>ALU control</th><th>Function</th></tr><tr><td>lw</td><td>00</td><td>101010</td><td>0010</td><td>add</td></tr><tr><td>beq</td><td>01</td><td>100101</td><td>0110</td><td>subtract</td></tr><tr><td>slt</td><td>10</td><td>101010</td><td>0111</td><td>slt</td></tr><tr><td>or</td><td>10</td><td>100101</td><td>0001</td><td>OR</td></tr><tr><td>sw</td><td>00</td><td>100100</td><td>0010</td><td>add</td></tr></table>\nb. 只有 R-type（slt、or）；lw 的 ALUOp = 00 已指定 add，bits 5:0 屬於 immediate → X；X 代表 0 或 1 都不影響輸出（不是 0，也不是未知）\nc. RegDst = 0 → rt；ALUSrc = 1 → sign-extended imm；MemtoReg = 0 → ALU result；是 addi；不是 disabled，0 代表選 rt\nd. bits 5:0 = 100010 → 做 subtract：50 − 34 = 16 → $t0 = 16（正確應為 50 + 34 = 84）"],
+  ["7", "<b>Control Signals with Jump</b>（Ch3-4、3-5）\nA single-cycle datapath supports R-type, lw, sw, beq, addi, and j. Each instruction below is executed independently with these initial values: $s0 = 0x10010000, $s1 = 0x0000005A, $s2 = 0x0000003C, Memory[0x10010008] = 0x00000064.\n<span class=\"code\">I1: and  $t0, $s1, $s2\nI2: lw   $t1, 8($s0)\nI3: sw   $s1, -4($s0)\nI4: beq  $s1, $s2, 5          # at 0x00400040\nI5: j    0x00400100           # at 0x00400048</span>(a) Complete the control table (use X for don't care). Some values are given.\n<table class=\"t\"><tr><th>Instruction</th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>Jump</th><th>ALUOp</th></tr><tr><td>I1: and</td><td><b>1</b></td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>I2: lw</td><td>?</td><td>?</td><td>?</td><td>?</td><td><b>1</b></td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>I3: sw</td><td>?</td><td>?</td><td><b>X</b></td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td></tr><tr><td>I4: beq</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td><b>1</b></td><td>?</td><td>?</td></tr><tr><td>I5: j</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td>?</td><td><b>1</b></td><td>?</td></tr></table>\n(b) For I1–I3, give the 4-bit ALU control, the ALU result, and what is written and where.\n(c) For I4, give the ALU result, Zero, PCSrc, the branch target, and the Next PC.\n(d) For I5, give the 26-bit address field, the machine code, PCSrc, and the Next PC. Why are ALUSrc and ALUOp don't care for j?", 7,
+   "a.\n<table class=\"t\"><tr><th></th><th>RegDst</th><th>ALUSrc</th><th>MemtoReg</th><th>RegWrite</th><th>MemRead</th><th>MemWrite</th><th>Branch</th><th>Jump</th><th>ALUOp</th></tr><tr><td>and</td><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>10</td></tr><tr><td>lw</td><td>0</td><td>1</td><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>0</td><td>00</td></tr><tr><td>sw</td><td>X</td><td>1</td><td>X</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>00</td></tr><tr><td>beq</td><td>X</td><td>0</td><td>X</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>01</td></tr><tr><td>j</td><td>X</td><td>X</td><td>X</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>XX</td></tr></table>\nb. I1：0000，0x5A AND 0x3C = 0x18 → $t0 = 0x00000018；I2：0010，0x10010008 → $t1 = 0x00000064；I3：0010，0x1000FFFC → Mem[0x1000FFFC] ← 0x0000005A\nc. 0x5A − 0x3C = 0x1E，Zero = 0，PCSrc = 0；Target = 0x00400044 + 20 = 0x00400058；Next PC = 0x00400044\nd. Field = 0x0100040，機器碼 0x08100040；PCSrc = 0；Next PC = 0x00400100；j 不使用 ALU 結果"],
+  ["8", "<b>Control Signal Fault Analysis</b>（Ch3-5）\nEach fault below is independent; all other control signals are correct. Initial values: $s2 = 8, $s3 = 2000, $t1 = 99, $t2 = 6, $t3 = −6, Memory[2004] = 50, Memory[2008] = 33, Memory[2012] = 64.\n(a) For <code>lw $s2, 12($s3)</code>, give the correct final value of $s2 and its value under each fault: (1) ALUSrc = 0, (2) MemtoReg = 0, (3) RegDst = 1 (the MUX then selects instruction bits 15:11 as the write register).\n(b) For <code>sw $t1, 4($s3)</code>, give the final Memory[2004] and $t1 under each fault: (1) MemWrite = 0, (2) RegWrite = 1 with RegDst = 0 and MemtoReg = 0.\n(c) For <code>beq $t2, $t3, TARGET</code>, is the branch taken under correct control? If ALUOp is wrongly 00, give the ALU result, Zero, and PCSrc. Is the branch taken?\n(d) The Branch signal is stuck at 1. <code>sub $t4, $t5, $t5</code> (machine code 0x01AD6022) is at 0x00400080. The branch-target adder always computes PC + 4 + (SignExt(bits 15:0) &lt;&lt; 2). Give Zero, PCSrc, the value written to $t4, and the Next PC.", 6,
+   "a. 正確 $s2 = Mem[2012] = 64；(1) 位址 = 2000 + 8 = 2008 → $s2 = 33　(2) $s2 = 2012（ALU result）　(3) bits 15:11 = 00000 → 寫入 $zero（無效），$s2 = 8 不變\nb. (1) Mem[2004] = 50（不變），$t1 = 99　(2) Mem[2004] = 99，$t1 = 2004（ALU result 寫回 rt）\nc. 正確：6 − (−6) = 12，Zero = 0 → 不跳；ALUOp = 00：6 + (−6) = 0，Zero = 1，PCSrc = 1 → 錯誤地跳到 TARGET\nd. Zero = 1，PCSrc = 1；$t4 = 0；bits 15:0 = 0x6022 → Next PC = 0x00400084 + 0x00018088 = 0x0041810C"],
+  ["9", "<b>Reverse Control Tracing and Jump Target</b>（Ch3-5）\n(a) For each case, determine RegDst, ALUSrc, MemtoReg, RegWrite, MemWrite, Branch, and ALUOp (use X for don't care), and identify the instruction type.\nCase 1: The ALU computes 0x10010010 + 0xFFFFFFF0. Data Memory is read, and the value read is written into $t6.\nCase 2: The ALU computes 45 − 45. No register or memory is changed, and Next PC = PC + 4 + 20.\nCase 3: The ALU computes 18 + 30 using the sign-extended immediate; the result is written into register rt; Data Memory is not accessed.\n(b) For Case 1, give the effective address and the offset in decimal. For Case 2, give the 16-bit immediate field, Zero, and PCSrc.\n(c) A j instruction is located at 0x0FFFFFFC, and its 26-bit address field is 0x0000010. Give its machine code and jump target. Can a j instruction at this address jump to 0x0FFFFF00? Why?\n(d) When this j executes, Branch = 0 and the ALU output happens to be 0 (Zero = 1). Give PCSrc, the output of the branch MUX, and the Next PC.", 6,
+   "a. Case 1（lw）：RegDst 0、ALUSrc 1、MemtoReg 1、RegWrite 1、MemWrite 0、Branch 0、ALUOp 00\nCase 2（beq，taken）：X、0、X、0、0、1、01\nCase 3（addi）：0、1、0、1、0、0、00\nb. Case 1：位址 = 0x10010000，offset = −16；Case 2：imm = 20 / 4 = 5，Zero = 1，PCSrc = 1\nc. 0x08000010；Target = {(PC+4)[31:28], field, 00} = 0x10000040；不能：PC + 4 = 0x10000000 高 4 bit 為 0001，0x0FFFFF00 高 4 bit 為 0000\nd. PCSrc = 0 AND 1 = 0；branch MUX 輸出 PC + 4 = 0x10000000；Jump = 1 → Next PC = 0x10000040"],
+  ["10", "<b>Single-Cycle Processor Performance</b>（Ch3-5、3-6）\n<table class=\"t\"><tr><th>Component</th><th>Instruction Memory</th><th>Register File Read</th><th>ALU</th><th>Data Memory</th><th>Register File Write</th><th>MUX</th></tr><tr><td>Delay (ps)</td><td>300</td><td>125</td><td>175</td><td>325</td><td>100</td><td>25</td></tr></table><table class=\"t\"><tr><th>Instruction</th><th>Components on Critical Path</th></tr><tr><td>R-type</td><td>Instruction Memory → Register File Read → MUX → ALU → MUX → Register File Write</td></tr><tr><td>lw</td><td>Instruction Memory → Register File Read → MUX → ALU → Data Memory → MUX → Register File Write</td></tr><tr><td>sw</td><td>Instruction Memory → Register File Read → MUX → ALU → Data Memory</td></tr><tr><td>beq</td><td>Instruction Memory → Register File Read → ALU → MUX</td></tr></table>\nA program executes 5,000 R-type, 2,000 lw, 1,500 sw, and 1,500 beq instructions.\n(a) Calculate the critical-path delay of each instruction type, the minimum clock cycle time, and the instruction that determines it.\n(b) Calculate the execution time of the program. How much time is wasted in each R-type and each beq clock cycle? Calculate the total wasted time of the program and its percentage of the execution time.\n(c) Suppose, hypothetically, each instruction could use a clock period equal to its own delay. Calculate the execution time and the speedup over (b). Why is this not done in a real single-cycle design?\n(d) Only the Data Memory is to be improved. What is the maximum Data Memory delay that gives T_clk ≤ 950 ps? Which instruction then determines the clock, and what is the speedup?", 7,
+   "a. R = 750 ps，lw = 1075 ps，sw = 950 ps，beq = 625 ps；T_clk = 1075 ps，由 lw 決定\nb. 10,000 × 1075 ps = 10.75 μs；R 浪費 325 ps，beq 浪費 450 ps；總浪費 = 325×5000 + 125×1500 + 450×1500 = 2,487,500 ps ≈ 2.49 μs（約 23.1%）\nc. 5000×750 + 2000×1075 + 1500×950 + 1500×625 = 8,262,500 ps ≈ 8.26 μs；Speedup ≈ 1.30；clock period 不能依指令改變，只能固定為最慢指令\nd. lw = 750 + DM ≤ 950 → DM ≤ 200 ps；仍由 lw 決定（950 ps）；Speedup = 1075 / 950 ≈ 1.13"],
+  ["11", "<b>Exceptions and Interrupts</b>（Ch3-6）\nCourse convention: Cause is 1 bit (0 = undefined opcode, 1 = arithmetic overflow), EPC holds the address of the instruction that caused the exception, and the common handler is at 0x80000180.\n(a) Classify each event as an exception or an interrupt, and give Cause where the 1-bit encoding applies: (1) a disk controller signals that a transfer is complete, (2) the CPU fetches an instruction word with an undefined opcode, (3) a sub produces signed overflow, (4) a program executes syscall.\n(b) Initially $t1 = 0x40000000 and $s0 = 0x30000000.\n<span class=\"code\">0x00400080        addi $t0, $zero, 2\n0x00400084  LOOP: add  $t1, $t1, $s0\n0x00400088        addi $t0, $t0, -1\n0x0040008C        bne  $t0, $zero, LOOP\n0x00400090        sw   $t1, 0($s1)</span>Which execution of add overflows? Give EPC, Cause, and PC right after the exception is detected, the number of instructions completed before it, and the value of $t0 at that time. If the handler cannot correct the error, is the sw executed?\n(c) If the processor instead uses vectored interrupts (undefined opcode → 0xC0000000, overflow → 0xC0000020), where does the PC go for the exception in (b)? What is the main difference from a common handler?\n(d) Each syscall below completes successfully and the handler resumes the program.\n<span class=\"code\">0x00400400        addi $s0, $zero, 0\n0x00400404        addi $t0, $zero, 4\n0x00400408  LOOP: syscall\n0x0040040C        add  $s0, $s0, $t0\n0x00400410        addi $t0, $t0, -2\n0x00400414        beq  $t0, $zero, DONE\n0x00400418        j    LOOP\n0x0040041C  DONE: sw   $s0, 0($gp)</span>Give EPC and the Resume PC of each syscall, the number of times syscall is executed, the final $t0 and $s0, and the total number of executed instructions (excluding handler code). What would happen if the handler resumed at EPC instead?", 7,
+   "a. (1) Interrupt　(2) Exception，Cause = 0　(3) Exception，Cause = 1　(4) Exception\nb. 第 2 次 add（0x70000000 + 0x30000000 超出 signed 範圍）；EPC = 0x00400084，Cause = 1，PC = 0x80000180；已完成 4 條，$t0 = 1；sw 不執行（Terminate）\nc. PC = 0xC0000020；vectored 依 cause 直接決定 handler 位址，common handler 要先讀 Cause 再分派\nd. EPC = 0x00400408，Resume PC = 0x0040040C（EPC + 4）；syscall 執行 2 次；$t0 = 0，$s0 = 6；共 12 條；若從 EPC 恢復會不斷重做 syscall（無窮迴圈）"],
+  ["12", "<b>Pipeline Performance</b>（Ch4-1）\n<table class=\"t\"><tr><th>Instr</th><th>Instr fetch</th><th>Register read</th><th>ALU op</th><th>Memory access</th><th>Register write</th><th>Total time</th></tr><tr><td>lw</td><td>250 ps</td><td>150 ps</td><td>200 ps</td><td>250 ps</td><td>150 ps</td><td>?</td></tr><tr><td>sw</td><td>250 ps</td><td>150 ps</td><td>200 ps</td><td>250 ps</td><td></td><td>?</td></tr><tr><td>R-format</td><td>250 ps</td><td>150 ps</td><td>200 ps</td><td></td><td>150 ps</td><td>?</td></tr><tr><td>beq</td><td>250 ps</td><td>150 ps</td><td>200 ps</td><td></td><td></td><td>?</td></tr></table>\n(a) Complete the Total time column. Give the single-cycle clock and the 5-stage pipelined clock. What is the latency of one lw in each design? Does pipelining reduce latency?\n(b) Calculate the time to execute 20 instructions on each design and the speedup. What value does the speedup approach when the number of instructions becomes very large? Why is it less than 5?\n(c) A program finishes in 9,500 ps on the pipeline without stalls. How many instructions were executed?\n(d) The pipeline is redesigned into a 9-stage pipeline with a 175 ps clock. Compare instruction latency and ideal throughput (instructions per second) with the 5-stage pipeline, and find the minimum number of instructions for which the 9-stage pipeline finishes sooner.\n(e) Give two features of the MIPS ISA that make pipelining easier.", 7,
+   "a. lw = 1000、sw = 850、R = 750、beq = 600 ps；single-cycle T_c = 1000 ps，pipeline T_c = 250 ps；lw latency：1000 ps vs 5 × 250 = 1250 ps；不會縮短（反而變長）\nb. Single：20 × 1000 = 20,000 ps；Pipeline：(20 + 4) × 250 = 6,000 ps；Speedup ≈ 3.33；趨近 1000 / 250 = 4；stage 不平均，clock 由最慢的 250 ps 決定\nc. 9500 / 250 = 38 cycles = n + 4 → n = 34\nd. Latency：1250 vs 9 × 175 = 1575 ps（變長）；Throughput：4 × 10⁹ vs 5.71 × 10⁹ instr/s（約 +42.9%）；175(n + 8) &lt; 250(n + 4) → n > 5.33，最少 6 條\ne. 任兩點：指令都是 32 bits；格式少且規則；load/store addressing（EX 算位址、MEM 存取）；memory operand 對齊"],
+  ["13", "<b>Pipeline Registers</b>（Ch4-1、4-2）\n(a) Which pipeline register (IF/ID, ID/EX, EX/MEM, or MEM/WB) first stores each item: the fetched instruction, the sign-extended immediate, the ALU result, and the memory read data? Which of the following are stored in MEM/WB for a lw: ALU Result, Memory Read Data, Sign-extended Immediate, Destination Register Number, ALUSrc, MemtoReg, RegWrite?\n(b) Trace <code>lw $s5, -12($a1)</code> with $a1 = 0x10010040 and Memory[0x10010034] = 0x000000C8. Give the result of each stage: ID (values read / produced), EX (ALU inputs, ALUSrc, ALU result), MEM, and WB.\n(c) The lw in (b) is I1 below (I1 is fetched in CC1; no stalls):\n<span class=\"code\">I1: lw   $s5, -12($a1)\nI2: add  $t0, $s1, $s2\nI3: or   $t1, $s3, $s4\nI4: sub  $t2, $s6, $s7\nI5: and  $t3, $t4, $t5</span>In which cycle does I1 write $s5? At that time, which instruction is associated with IF/ID, ID/EX, EX/MEM, and MEM/WB? If WB wrongly took the destination register number (1) from the instruction in ID, or (2) from EX/MEM, which register would be written?\n(d) For another instruction: EX: ALU Result = 0x1000FFF0; MEM: Data Memory is written with 0x0000ABCD; WB: no register is updated. Assume rs = $sp = 0x10010000 and rt = 13. Write the complete MIPS instruction.", 6,
+   "a. Instruction → IF/ID；SignExt imm → ID/EX；ALU result → EX/MEM；Memory read data → MEM/WB；MEM/WB：ALU Result、Memory Read Data、Destination Register Number、MemtoReg、RegWrite\nb. ID：讀 $a1 = 0x10010040，SignExt = 0xFFFFFFF4；EX：0x10010040 + (−12)，ALUSrc = 1，ALU = 0x10010034；MEM：讀出 0x000000C8；WB：$s5 = 0x000000C8（200）\nc. CC5；IF/ID = I4，ID/EX = I3，EX/MEM = I2，MEM/WB = I1；(1) 寫到 $t2（I4）　(2) 寫到 $t0（I2）\nd. 0x1000FFF0 − 0x10010000 = −16 → <code>sw $t5, -16($sp)</code>"],
+  ["14", "<b>Multi-Cycle and Single-Cycle Pipeline Diagrams</b>（Ch4-3）\nSeven instructions execute in an ideal 5-stage pipeline without stalls; I1 enters IF in CC1.\n<span class=\"code\">I1: lw   $t0, 4($s0)\nI2: sub  $t1, $s1, $s2\nI3: sw   $s3, 8($s0)\nI4: or   $t2, $s4, $s5\nI5: lw   $t3, 12($s0)\nI6: add  $t4, $s6, $s7\nI7: and  $t5, $s1, $s3</span>(a) Identify the instruction in each stage (IF, ID, EX, MEM, WB) at CC4 and CC8. Write None if a stage is empty.\n(b) How many clock cycles are needed in total? How many instructions are active at CC3, CC6, and CC10? In which cycle does I5 complete WB?\n(c) If I4 is in the MEM stage, what is the current clock cycle? Which stage are I2 and I6 in?\n(d) At CC6, identify the instruction using Instruction Memory, Register File (read), ALU, Data Memory, and Register File (write), and state what Data Memory does. In which cycles is Data Memory actually read or written?", 6,
+   "a. CC4：IF I4、ID I3、EX I2、MEM I1、WB None；CC8：IF None、ID I7、EX I6、MEM I5、WB I4\nb. 7 + 4 = 11 cycles；CC3：3 條，CC6：5 條，CC10：2 條；I5 於 CC9 完成 WB\nc. CC7；I2 已完成（CC6 做完 WB）；I6 在 ID\nd. IM：I6，Reg read：I5，ALU：I4，Data Memory：I3（sw 寫入），Reg write：I2；實際存取：CC4（I1 讀）、CC6（I3 寫）、CC8（I5 讀）"],
+  ["15", "<b>Load vs. Store and Pipelined Control</b>（Ch4-2、4-3）\nControl signals are generated in ID and carried by the pipeline registers. I1 is fetched in CC1; there are no stalls. Assume $a2 = 0x10020010, $t6 = 0x0000BEEF, and Memory[0x10020008] = 0x00000123.\n<span class=\"code\">I1: sw   $t6, 20($a2)\nI2: lw   $t7, -8($a2)</span>(a) For each instruction, give the ALU result and the store data (Read Data 2) held in EX/MEM, the MEM operation, and the WB result.\n(b) Compare load and store: what inputs does the EX stage need for each, and what does the WB stage need for each?\n(c) For I1 (sw), give the control signal values carried in ID/EX (EX, M, and WB groups), EX/MEM, and MEM/WB. In which stage is each of RegDst, ALUSrc, ALUOp, Branch, MemRead, MemWrite, RegWrite, and MemtoReg used?\n(d) In CC5, what does Data Memory do, and is the Register File written? In which cycle is $t7 updated?", 6,
+   "a. I1：ALU = 0x10020024，store data = 0x0000BEEF；MEM：Mem[0x10020024] ← 0x0000BEEF；WB：無。I2：ALU = 0x10020008（Read Data 2 不使用）；MEM：讀出 0x00000123；WB：$t7 = 0x00000123\nb. EX：lw 需 base (rs) ＋ imm，sw 另需 store data (rt)；WB：lw 需 memory data ＋ destination (rt)，sw 不需要\nc. ID/EX：EX {RegDst X、ALUSrc 1、ALUOp 00}、M {Branch 0、MemRead 0、MemWrite 1}、WB {RegWrite 0、MemtoReg X}；EX/MEM：M ＋ WB；MEM/WB：WB；RegDst、ALUSrc、ALUOp → EX；Branch、MemRead、MemWrite → MEM；RegWrite、MemtoReg → WB\nd. CC5：I2 在 MEM 讀 Mem[0x10020008]；I1 在 WB 但 RegWrite = 0 → 不寫；$t7 在 CC6 更新"]
+];
+/* ★★★★★★★★★★ 設定區結束 ★★★★★★★★★★ */
+
+document.title = CONFIG.title;
+document.getElementById("sub").textContent = CONFIG.subtitle;
+document.getElementById("title").textContent = CONFIG.title;
+document.getElementById("section").textContent = CONFIG.section;
+document.getElementById("rules").textContent =
+  `注意：本卷共 ${QUESTIONS.length} 題，作答會自動保存在本機瀏覽器。按題號旁 ☆ 標記題目，上方可跳題或只看標記題；逐題「對答案」或卷末「交卷」公布全部答案；按題目或答案旁的「編輯」可修改該區塊。`;
+
+// 頂欄固定在畫面最上方，依實際高度保留空間
+const nav = document.querySelector(".nav");
+const fitNav = () => document.documentElement.style.setProperty("--navh", nav.offsetHeight + "px");
+new ResizeObserver(fitNav).observe(nav); fitNav();
+
+const KEY = "exam-" + CONFIG.subtitle + CONFIG.title;
+let saved = {}; try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+saved.marks = saved.marks || {}; saved.q = saved.q || {}; saved.k = saved.k || {};
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} };
+
+const ol = document.getElementById("qs"), chips = document.getElementById("chips");
+const wrapTables = el => el.querySelectorAll("table").forEach(t => {
+  if (t.parentElement.classList.contains("tw")) return;
+  const w = document.createElement("div"); w.className = "tw"; t.before(w); w.appendChild(t); });
+// 一次只編輯一個區塊（題目或答案）
+let editing = null;
+function stopEdit() {
+  if (!editing) return;
+  const { el, btn, rs } = editing;
+  el.contentEditable = false; el.classList.remove("editing");
+  btn.textContent = "編輯"; btn.setAttribute("aria-pressed", "false"); rs.hidden = true;
+  editing = null;
+}
+function editable(el, tools, restore) {
+  const [rs, btn] = tools.querySelectorAll("button");
+  btn.onclick = () => {
+    const mine = editing && editing.el === el;
+    stopEdit();
+    if (mine) return;
+    editing = { el, btn, rs };
+    el.contentEditable = true; el.classList.add("editing");
+    btn.textContent = "完成"; btn.setAttribute("aria-pressed", "true"); rs.hidden = false;
+    el.focus();
+  };
+  rs.onclick = restore;
+}
+const TOOLS = `<span class="tools"><button type="button" class="eb" hidden>還原原文</button><button type="button" class="eb" aria-pressed="false">編輯</button></span>`;
+const items = QUESTIONS.map(([no, q, rows, a], i) => {
+  const li = document.createElement("li"); li.className = "q"; li.id = "q" + i;
+  li.innerHTML = `<div class="num"><span>${no}.</span><button type="button" class="star" title="標記這題">★</button></div>
+    <div class="qb"><div class="qh"><p class="qt"></p>${TOOLS}</div>
+    <textarea rows="${rows + 1}"></textarea>
+    <div class="act"><button type="button" class="rv">對答案</button></div>
+    <div class="ans" hidden><div class="ah"><b>參考答案</b>${TOOLS}</div><div class="ak"></div></div></div>`;
+  const qt = li.querySelector(".qt"), ak = li.querySelector(".ak");
+  qt.innerHTML = saved.q[i] ?? q;
+  ak.innerHTML = saved.k[i] ?? a;
+  wrapTables(li);
+  qt.oninput = () => { saved.q[i] = qt.innerHTML; save(); };
+  ak.oninput = () => { saved.k[i] = ak.innerHTML; save(); };
+  const [qTools, aTools] = li.querySelectorAll(".tools");
+  editable(qt, qTools, () => { delete saved.q[i]; save(); qt.innerHTML = q; wrapTables(qt); });
+  editable(ak, aTools, () => { delete saved.k[i]; save(); ak.innerHTML = a; wrapTables(ak); });
+  const ta = li.querySelector("textarea");
+  ta.value = saved["a" + i] || "";
+  ta.oninput = () => { saved["a" + i] = ta.value; save(); };
+  li.querySelector(".star").onclick = () => { saved.marks[i] = !saved.marks[i]; save(); refresh(); };
+  ol.appendChild(li);
+  const c = document.createElement("button"); c.type = "button"; c.className = "chip"; c.textContent = no;
+  c.title = "跳到第 " + no + " 題"; c.onclick = () => li.scrollIntoView({ behavior: "smooth", block: "start" });
+  chips.appendChild(c);
+  return { li, c };
+});
+
+const only = document.getElementById("only");
+function refresh() {
+  const on = only.getAttribute("aria-pressed") === "true";
+  let n = 0;
+  items.forEach(({ li, c }, i) => {
+    const m = !!saved.marks[i]; if (m) n++;
+    li.classList.toggle("m", m); c.classList.toggle("m", m);
+    li.querySelector(".star").title = m ? "取消標記" : "標記這題";
+    li.hidden = on && !m; c.hidden = on && !m;
+  });
+  only.textContent = `只看標記題（${n}）`;
+  document.getElementById("empty").hidden = !(on && n === 0);
+}
+only.onclick = () => { only.setAttribute("aria-pressed", only.getAttribute("aria-pressed") !== "true"); refresh(); };
+refresh();
+
+const btns = [...document.querySelectorAll(".rv")];
+const set = (b, open) => {
+  const ans = b.parentElement.nextElementSibling;
+  if (!open && editing && ans.contains(editing.el)) stopEdit();
+  ans.hidden = !open; b.textContent = open ? "收起" : "對答案";
+};
+btns.forEach(b => b.onclick = () => set(b, b.textContent === "對答案"));
+document.getElementById("submit").onclick = () => btns.forEach(b => set(b, true));
+document.getElementById("hide").onclick = () => btns.forEach(b => set(b, false));
+document.addEventListener("paste", e => {
+  if (!document.activeElement.isContentEditable) return;
+  e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text/plain"));
+});
+let armed = false;
+document.getElementById("clear").onclick = e => {
+  if (!armed) { armed = true; e.target.textContent = "再按一次確認清除（標記與編輯會保留）";
+    setTimeout(() => { armed = false; e.target.textContent = "清除作答"; }, 4000); return; }
+  saved = { marks: saved.marks, q: saved.q, k: saved.k }; save(); document.querySelectorAll("textarea").forEach(el => el.value = "");
+  armed = false; e.target.textContent = "清除作答";
+};
+</script>
+</body>
+</html>
